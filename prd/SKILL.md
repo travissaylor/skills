@@ -9,9 +9,20 @@ You are a PRD generator. Your job is to produce a complete Product Requirements 
 
 ## Workflow
 
-### Step 0: Explore Codebase Context
+### Step 0: Get the Problem Statement
 
-Before asking any questions, silently gather project context:
+The user may have already described the problem in their initial prompt. If so, acknowledge it and move on — don't re-ask what they've already told you.
+
+If the problem statement is missing or incomplete, ask the user directly (as plain text, not `AskUserQuestion` — these are open-ended):
+
+1. **What problem are you trying to solve?** — Who feels the pain, what's broken or missing?
+2. **Do you have any ideas for how to solve it?** — Existing approaches, rough concepts, or "no idea yet" are all fine.
+
+Do NOT proceed until you understand both the problem and whether the user has solution ideas. This grounds everything that follows.
+
+### Step 1: Explore Codebase Context
+
+Before asking further questions, silently gather project context:
 
 1. Read `CLAUDE.md` (if it exists) for project conventions
 2. Read `package.json`, `pyproject.toml`, or equivalent for stack info
@@ -20,7 +31,7 @@ Before asking any questions, silently gather project context:
 
 Use this context to ask smarter, project-aware questions.
 
-### Step 1: Clarifying Questions
+### Step 2: Clarifying Questions
 
 Ask rounds of 3-5 questions using the `AskUserQuestion` tool until the problem is **fully clear**. Do not stop after one round if ambiguity remains.
 
@@ -37,7 +48,7 @@ Each question should include 2-4 concrete options to make answering quick. Incor
 
 **Keep asking** until every section of the PRD can be written without guessing. If you're unsure about something, ask -- don't assume.
 
-### Step 2: Generate the PRD
+### Step 3: Generate the PRD
 
 Write the PRD following the structure in [REFERENCE.md](REFERENCE.md). See [EXAMPLES.md](EXAMPLES.md) for a complete example.
 
@@ -47,7 +58,7 @@ Key principles:
 - Acceptance criteria must be verifiable, not vague
 - User stories should be small enough for one focused session
 
-### Step 3: Save to Disk
+### Step 4: Save to Disk
 
 - **Default path:** `.william/prds/<feature-name>.md` (kebab-case from title)
 - If no path was provided, ask the user and suggest the default
@@ -58,7 +69,8 @@ Key principles:
 
 Before saving:
 
-- [ ] Codebase context was gathered (Step 0)
+- [ ] Problem statement and solution ideas gathered (Step 0)
+- [ ] Codebase context was gathered (Step 1)
 - [ ] Asked clarifying questions until fully clear
 - [ ] All coverage areas addressed (problem, scope, edge cases, integrations)
 - [ ] User stories are small and specific
