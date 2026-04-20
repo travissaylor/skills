@@ -17,3 +17,11 @@ A collection of agent skills for Claude Code.
   ```
   npx skills@latest add travissaylor/skills/improve-codebase-architecture
   ```
+
+## Execution
+
+- **parallel-execute** — Execute a plan by delegating work to sub-agents, running as many steps as possible in parallel. Builds a dependency graph, fans out independent steps in waves, and verifies results between waves.
+
+  ```
+  npx skills@latest add travissaylor/skills/parallel-execute
+  ```
