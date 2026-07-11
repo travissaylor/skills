@@ -28,6 +28,16 @@ export const meta = {
   ],
 };
 
+// The Workflow runtime can deliver args as a JSON string; without this
+// guard args.task is undefined and every run exits at the gate below.
+if (typeof args === "string") {
+  try {
+    args = JSON.parse(args);
+  } catch {
+    args = { task: args };
+  }
+}
+
 if (!args || typeof args.task !== "string" || !args.task.trim()) {
   log("No task provided — nothing to plan. Re-run with args.task set.");
   return {
