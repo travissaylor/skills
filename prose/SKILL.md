@@ -3,6 +3,9 @@ name: prose
 description: "The one prose skill. Apply before writing anything a person will read: chat responses past a paragraph, docs, PR descriptions, commit messages, Jira/Confluence/Slack/Notion posts, summaries, artifacts. Merged core of unslop (language), scannable (density + layout), and technical-writing (doc standards), conflicts pre-reconciled."
 ---
 
+<!-- This file is a dictionary of banned words and quotes them as examples. Vocabulary checks are skipped here. Punctuation checks stay live. -->
+<!-- lint-skip-file: SK207,SK210,SK211,SK212,SK213 -->
+
 # Prose
 
 The merged core of three deep-pass skills. Apply this to everything written for a reader. Escalate to a deep pass only as routed at the bottom.
