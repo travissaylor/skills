@@ -103,7 +103,7 @@ Codes are frozen. A new check gets a new code, and a retired check leaves its nu
 
 ## The baseline
 
-The backlog is cleared. `make lint` reports 0 errors and 0 warnings across all 7 files, so nothing in the repo needs suppressing right now. `tools/lint_baseline.json` still holds the counts recorded before the cleanup and is waiting on a `make baseline` run to catch up. A stale baseline over-allows, which keeps the gate quiet rather than noisy, so it is safe to sit on but it is not accurate.
+The backlog is cleared. `make lint` reports 0 errors and 0 warnings across all 7 files, and `tools/lint_baseline.json` records zero findings, so the gate blocks the first new defect anywhere in the repo. After any future deliberate suppression-worthy state, the same mechanism applies: record it, then burn it down.
 
 The mechanism stays because it is what lets a linter land on a repo that already has a backlog. Without a baseline the pre-commit hook blocks every commit from the day it is installed. A hook that always fails gets deleted within a week, and then nothing is checked at all. The baseline records what is already broken so the gate only fires on what a commit adds.
 
