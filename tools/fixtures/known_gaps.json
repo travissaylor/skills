@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "note": "Acceptance-corpus defects that static analysis in this linter cannot reach. Each entry stays under test so the gap cannot rot away unnoticed. See tools/test_skill_lint.py, KnownGapsTest.",
+  "gaps": [
+    {
+      "id": "defect-5-routing-bypass",
+      "path": "recall/SKILL.md",
+      "line": 33,
+      "anchor": "Write the brief through the **unslop** skill",
+      "related": [
+        {
+          "path": "prose/SKILL.md",
+          "line": 72,
+          "anchor": "This skill is the entry point for prose"
+        }
+      ],
+      "defect": "recall sends the agent straight to unslop, while prose states that it is the entry point and that the deep passes must not be loaded ahead of it.",
+      "why_not_checkable": "SK008 only asks whether a named sibling skill exists. unslop does exist, so the reference resolves. The routing rule it breaks lives in another skill's prose, not in machine-readable form.",
+      "what_would_catch_it": "The planned Phase 2 routes-to frontmatter key, which turns the routing claim into data the linter can check both ways."
+    },
+    {
+      "id": "defect-6-cross-skill-self-modification",
+      "path": "technical-writing/SKILL.md",
+      "line": 21,
+      "anchor": "Add new offenders to `unslop`",
+      "defect": "The skill instructs the agent to edit another skill's rule list. That is unbounded cross-skill self-modification with no guard on what may be written or by whom.",
+      "why_not_checkable": "The instruction is ordinary prose. Nothing in the file marks it as a write, and the linter has no model of which files a skill is allowed to change.",
+      "what_would_catch_it": "A policy check over write targets, driven by a declared per-skill write scope in frontmatter, flagging any instruction that points outside it."
+    }
+  ]
+}

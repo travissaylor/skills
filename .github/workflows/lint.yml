@@ -1,0 +1,47 @@
+name: Lint
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Compile check the tools directory
+        run: python3 -m compileall -q tools/
+
+      - name: Run the linter test suite
+        run: python3 tools/test_skill_lint.py
+
+      - name: Run the skill linter against the baseline
+        run: python3 tools/lint_skills.py --baseline tools/lint_baseline.json
+
+      # The linter checks our own prose and structure rules only. It cannot see
+      # upstream schema drift in the official skill format, so this step asks
+      # the claude CLI itself. Skipped, not failed, when the binary is absent.
+      - name: Validate against the upstream skill schema
+        run: |
+          if command -v claude >/dev/null 2>&1; then
+            claude plugin validate . --strict
+          else
+            echo "claude binary not found, skipping upstream schema validation"
+          fi
+
+      # No baseline here on purpose: this keeps the full backlog visible in the
+      # job summary instead of letting the baseline hide it forever.
+      - name: Report full findings as information only
+        if: always()
+        run: |
+          echo "### Full lint findings (informational, baseline not applied)" >> "$GITHUB_STEP_SUMMARY"
+          echo '```json' >> "$GITHUB_STEP_SUMMARY"
+          python3 tools/lint_skills.py --format json >> "$GITHUB_STEP_SUMMARY" || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"

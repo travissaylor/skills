@@ -1,0 +1,24 @@
+#!/bin/sh
+# Blocks a commit when the skill linter reports new findings against the baseline.
+# Installed via `make install-hooks`, which points core.hooksPath at this directory.
+
+repo_root=$(git rev-parse --show-toplevel 2>/dev/null)
+if [ -z "$repo_root" ]; then
+    echo "pre-commit: not inside a git repo, skipping lint" >&2
+    exit 1
+fi
+cd "$repo_root" || exit 1
+
+if ! command -v python3 >/dev/null 2>&1; then
+    echo "pre-commit: python3 not found, cannot run the skill linter" >&2
+    exit 1
+fi
+
+python3 tools/lint_skills.py --baseline tools/lint_baseline.json
+status=$?
+
+if [ "$status" -ne 0 ]; then
+    echo "Lint failed. See all findings: make lint | Update baseline after a deliberate fix: make baseline" >&2
+fi
+
+exit "$status"

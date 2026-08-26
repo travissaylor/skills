@@ -1,7 +1,10 @@
 ---
 name: technical-writing
-description: "Deep documentation pass: Diátaxis structure, Google developer style, STE instruction rules, Global English syntax. The `prose` skill routes here for formal docs (READMEs, RFCs, ERDs, Confluence pages, doc sets); also /technical-writing."
+description: "Deep documentation pass: Diátaxis structure, Google developer style, STE instruction rules, Global English syntax. The `prose` skill routes here for formal docs (READMEs, RFCs, ERDs, Confluence pages, doc sets). Also loads on /technical-writing."
 ---
+
+<!-- This file is a dictionary of banned words and quotes them as examples. Vocabulary checks are skipped here. Punctuation checks stay live. -->
+<!-- lint-skip-file: SK207,SK210,SK211,SK212,SK213 -->
 
 # Technical writing
 
@@ -90,6 +93,7 @@ Source: asd-ste100.org (Issue 9, 2025), fetched 2026-07-18. The numbered rules a
 - Say which parts "and" or "or" joins when a sentence can group two ways. "Both...and", "either...or", and "if...then" are free disambiguators.
 - Use periods, not semicolons. Replace an em dash with a new sentence.
 - Make text in parentheses a full grammatical unit or its own sentence. Never form plurals with "(s)".
+<!-- lint-skip-next-line: SK205 -->
 - No slashes: write "a, b, or both" instead of "a/b" or "and/or".
 - Call each thing by one name, everywhere. A doc that says "the gate", "the ratchet", and "the budget check" for one thing teaches three things. Rewording an unchanged sentence between edits costs the same way: don't churn what didn't change.
 - Skip idioms, colloquialisms, Latin abbreviations, and metaphors. A non-native reader, a translator, and an agent all parse plain constructions best.

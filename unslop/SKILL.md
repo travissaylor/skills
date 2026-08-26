@@ -1,7 +1,10 @@
 ---
 name: unslop
-description: "Deep de-slopping pass: the full 31-pattern catalog of AI tells, applied to an existing draft. The `prose` skill carries the everyday core; load this for /unslop or when a draft needs a thorough cleanup."
+description: "Deep de-slopping pass: the full 31-pattern catalog of AI tells, applied to an existing draft. The `prose` skill carries the everyday core, so load this for /unslop or when a draft needs a thorough cleanup."
 ---
+
+<!-- This file is a dictionary of banned words and quotes them as examples. Vocabulary checks are skipped here. Punctuation checks stay live. -->
+<!-- lint-skip-file: SK207,SK210,SK211,SK212,SK213 -->
 
 # Unslop
 
