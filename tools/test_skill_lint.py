@@ -415,6 +415,10 @@ class RepoCorpusTest(unittest.TestCase):
             "SK105 fired again, a description drifted back to trigger phrasing",
         )
 
+    @unittest.skipUnless(
+        (Path.home() / ".claude" / "skills").is_dir(),
+        "SK106 checks this machine's ~/.claude/skills, which CI does not have",
+    )
     def test_sk106_fires_on_no_skill(self):
         """Every skill here is symlinked into ~/.claude/skills, so it is dogfooded."""
         core = load("core")
