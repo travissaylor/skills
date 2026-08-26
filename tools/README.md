@@ -10,20 +10,20 @@ The linter is a static check. It reads files, matches patterns, and prints findi
 |---|---|
 | `make lint` | Prints the full backlog, no baseline filtering. Use it to see the real state. |
 | `make lint-ci` | Prints only findings beyond the baseline. This is the commit gate and the CI gate. |
-| `make test` | Runs the linter test suite, 60 tests. |
+| `make test` | Runs the linter test suite, 58 tests. |
 | `make baseline` | Rewrites `tools/lint_baseline.json` from current findings. Run it after a deliberate fix. |
 | `make install-hooks` | Points `core.hooksPath` at `.githooks` and marks the pre-commit hook runnable. |
 | `make check` | Compile check, then `make test`, then `make lint-ci`. Run it before pushing. |
 
 `make check` is the default target, so bare `make` runs it.
 
-`make lint` exits 1 whenever it finds an error, which it does today, so `make` reports it as a failed target. That is expected. `make lint-ci` is the target that should pass.
+`make lint` exits 1 whenever it finds an error. The backlog is empty today, so `make lint`, `make lint-ci`, and bare `make` all pass.
 
 Every target is a one line wrapper. The underlying command is `python3 tools/lint_skills.py` with flags.
 
 ## What it scans
 
-Skills are every immediate subdirectory of the repo root that holds a `SKILL.md`, skipping dotted directories and `tools`. Prose checks run over every markdown file in the repo, skipping dotted directories, `tools`, and `node_modules`. That is 9 files today: the root `README.md`, seven `SKILL.md` files, and `improve-codebase-architecture/REFERENCE.md`.
+Skills are every immediate subdirectory of the repo root that holds a `SKILL.md`, skipping dotted directories and `tools`. Prose checks run over every markdown file in the repo, skipping dotted directories, `tools`, and `node_modules`. That is 7 files today: the root `README.md` and six `SKILL.md` files.
 
 Prose checks run on a masked view of each file. Fenced code blocks, blockquotes, inline code spans, and URLs are blanked out first, with line numbers and character offsets preserved. A semicolon inside a code sample is not a finding.
 
@@ -103,17 +103,17 @@ Codes are frozen. A new check gets a new code, and a retired check leaves its nu
 
 ## The baseline
 
-This repo has real findings today: 27 errors and 3 warnings, mostly 11 em dashes and 14 semicolons, concentrated in `improve-codebase-architecture` and the rule-source skills. Those are genuine defects, and fixing them is a separate job from shipping the linter.
+The backlog is cleared. `make lint` reports 0 errors and 0 warnings across all 7 files, so nothing in the repo needs suppressing right now. `tools/lint_baseline.json` still holds the counts recorded before the cleanup and is waiting on a `make baseline` run to catch up. A stale baseline over-allows, which keeps the gate quiet rather than noisy, so it is safe to sit on but it is not accurate.
 
-Without a baseline the pre-commit hook would block every commit in the repo from the day it was installed. A hook that always fails gets deleted within a week, and then nothing is checked at all. The baseline records what is already broken so the gate only fires on what a commit adds.
+The mechanism stays because it is what lets a linter land on a repo that already has a backlog. Without a baseline the pre-commit hook blocks every commit from the day it is installed. A hook that always fails gets deleted within a week, and then nothing is checked at all. The baseline records what is already broken so the gate only fires on what a commit adds.
 
-The file is `tools/lint_baseline.json`:
+The file is `tools/lint_baseline.json`. It carries a version and one count per finding key:
 
 ```json
 {
   "version": 2,
   "counts": {
-    "SK201\tREADME.md\tem dash, use a period or a comma": 7
+    "SK201\tsome-skill/SKILL.md\tem dash, use a period or a comma": 7
   }
 }
 ```
@@ -153,11 +153,10 @@ That list is the word-list codes and nothing else. The punctuation codes SK201 t
 
 ## Known gaps
 
-Three defects in the acceptance corpus cannot be caught by static analysis. They are recorded in `tools/fixtures/known_gaps.json` and held under test in `KnownGapsTest`, so the gap is visible instead of forgotten:
+Two defects in the acceptance corpus cannot be caught by static analysis. They are recorded in `tools/fixtures/known_gaps.json` and held under test in `KnownGapsTest`, so the gap is visible instead of forgotten:
 
 | Gap | The defect | What would catch it |
 |---|---|---|
-| `defect-3-half-finished-rfc-conversion` | `improve-codebase-architecture` is half converted from GitHub issue RFCs to Markdown file RFCs. The opening promises issues, the step body writes a file, and `REFERENCE.md` still ships an issue template. | Semantic contradiction detection across a skill and its bundled files, most likely model graded. |
 | `defect-5-routing-bypass` | `recall/SKILL.md:33` sends the agent straight to `unslop`, while `prose` states that it is the entry point and the deep passes must not be loaded ahead of it. | The planned `routes-to` frontmatter key, which turns the routing claim into data the linter can check both ways. |
 | `defect-6-cross-skill-self-modification` | `technical-writing/SKILL.md:21` instructs the agent to edit another skill's rule list. That is unbounded cross-skill self-modification with no guard on what may be written. | A policy check over write targets, driven by a declared per-skill write scope in frontmatter. |
 
@@ -180,7 +179,7 @@ The tradeoff is real. There is no YAML parser, so `core.parse_frontmatter` handl
     tools/skill_lint/cli.py           flags, output formatting, baseline, exit codes
     tools/test_skill_lint.py          the test suite
     tools/fixtures/cases/             per-check fixture skills
-    tools/fixtures/known_gaps.json    the four non-checkable defects
+    tools/fixtures/known_gaps.json    the two non-checkable defects
     tools/lint_baseline.json          recorded counts of existing findings
 
 Check modules return `list[Finding]`. They never print, never exit, and never write files. All output and all exit-code logic lives in `cli.py`.

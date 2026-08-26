@@ -3,27 +3,6 @@
   "note": "Acceptance-corpus defects that static analysis in this linter cannot reach. Each entry stays under test so the gap cannot rot away unnoticed. See tools/test_skill_lint.py, KnownGapsTest.",
   "gaps": [
     {
-      "id": "defect-3-half-finished-rfc-conversion",
-      "path": "improve-codebase-architecture/SKILL.md",
-      "line": 8,
-      "anchor": "GitHub issue RFCs",
-      "related": [
-        {
-          "path": "improve-codebase-architecture/SKILL.md",
-          "line": 74,
-          "anchor": "Store the RFC as a Markdown file"
-        },
-        {
-          "path": "improve-codebase-architecture/REFERENCE.md",
-          "line": 34,
-          "anchor": "## Issue Template"
-        }
-      ],
-      "defect": "A half-finished conversion from GitHub issue RFCs to Markdown file RFCs. The opening promises issues, the step body writes a file, and the reference still ships an issue template.",
-      "why_not_checkable": "Catching it means noticing that three passages contradict each other in meaning. The linter matches patterns, it does not read for sense.",
-      "what_would_catch_it": "Semantic contradiction detection across a skill and its bundled files, most likely a model-graded check rather than a regular expression."
-    },
-    {
       "id": "defect-5-routing-bypass",
       "path": "recall/SKILL.md",
       "line": 33,

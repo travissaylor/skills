@@ -13,7 +13,8 @@ Standard library only. Three groups of tests carry the weight:
    that reports on everything is as useless as one that reports on nothing.
 2. False-positive fixtures. These cover the misfires that would get the linter
    switched off, so each one asserts silence.
-3. The real repo corpus. This is the definition of done for the whole project.
+3. The real repo corpus. The backlog is cleared, so these tests guard that it
+   stays cleared and that the remaining known gaps stay anchored.
 """
 
 from __future__ import annotations
@@ -37,31 +38,25 @@ if str(TOOLS) not in sys.path:
     sys.path.insert(0, str(TOOLS))
 
 
-# --- Recorded corpus state after the conductor, README, and scannable fixes ---
+# --- Recorded corpus state: the backlog is cleared ----------------------------
 #
-# Raw character counts, straight off disk. The linter reports on the prose view,
-# where a character sitting inside a code span is masked out, so the linter's
-# own numbers can be lower. Both sets are recorded because the spec asks for
-# both, and only the derived prose-view numbers are asserted against findings.
+# Raw character counts, straight off disk. Every recorded occurrence has been
+# fixed, so both maps are empty and every corpus assertion reads as a zero.
+# That is the point. The counts are still computed from the files rather than
+# from the maps, so a new em dash or semicolon in the repo fails the suite
+# instead of quietly rebuilding the backlog. A file absent from a map is
+# recorded as zero, and a map naming a file that is no longer scanned fails too.
 
-EM_DASH_RAW = {
-    "improve-codebase-architecture/SKILL.md": 8,
-    "improve-codebase-architecture/REFERENCE.md": 3,
-}
-SEMICOLON_RAW = {
-    "improve-codebase-architecture/REFERENCE.md": 1,
-    "prose/SKILL.md": 8,
-    "recall/SKILL.md": 3,
-    "technical-writing/SKILL.md": 1,
-    "unslop/SKILL.md": 1,
-}
+EM_DASH_RAW: dict[str, int] = {}
+SEMICOLON_RAW: dict[str, int] = {}
 
-# What the linter itself reports, one finding per prose-view occurrence. Every
-# remaining occurrence sits in prose, so raw and prose-view counts agree.
+# What the linter itself reports, one finding per prose-view occurrence. The
+# linter reads a masked view where a character inside a code span is blanked
+# out, so its numbers can be lower than the raw ones. Both are zero today.
 EM_DASH_LINTER = dict(EM_DASH_RAW)
 SEMICOLON_LINTER = dict(SEMICOLON_RAW)
-EM_DASH_PROSE_VIEW_TOTAL = 11
-SEMICOLON_PROSE_VIEW_TOTAL = 14
+EM_DASH_PROSE_VIEW_TOTAL = 0
+SEMICOLON_PROSE_VIEW_TOTAL = 0
 
 EM_DASH = "—"
 EN_DASH = "–"
@@ -77,10 +72,10 @@ SEMICOLON_KEY = "SK203\t%s\tsemicolon, use a period instead" % COUNTED_MD
 NEW_EM_DASH_LINE = "The cleanup runs after %s the archive follows." % EM_DASH
 BUG_LINE = "A new line with an em dash %s and a semicolon; plus TODO." % EM_DASH
 
-DEFECT_2_PATH = "improve-codebase-architecture/SKILL.md"
-DEFECT_2_NEEDLE = ".william/rfcs/"
-DEFECT_4_SKILL = "improve-codebase-architecture"
-DEFECT_7_PATH = "recall/SKILL.md"
+# The skill that still disables model invocation. SK105 must stay silent on it,
+# and the check must stay reachable, so the condition itself is asserted.
+DISABLED_INVOCATION_PATH = "recall/SKILL.md"
+DISABLED_INVOCATION_KEY = "disable-model-invocation: true"
 
 
 # --- Module loading -----------------------------------------------------------
@@ -327,138 +322,121 @@ class FalsePositiveTest(unittest.TestCase):
 
 
 class RepoCorpusTest(unittest.TestCase):
-    """The acceptance corpus. These four defects define done for the project."""
+    """The acceptance corpus, now clean.
+
+    Every defect this suite was written against has been fixed, so these tests
+    no longer name individual defects. Their job is to keep the corpus clean:
+    each one recomputes from the files on disk and fails if a finding comes
+    back. The defects that static analysis cannot reach live in
+    tools/fixtures/known_gaps.json and are held by KnownGapsTest below.
+    """
 
     @classmethod
     def setUpClass(cls):
         cls.findings = lint_tree(REPO)
 
-    def prose_view_lines(self, rel_path, needle):
+    def corpus_paths(self):
+        """Relative paths of every markdown file the linter scans in this repo."""
         core = load("core")
-        text = (REPO / rel_path).read_text(encoding="utf-8")
-        view = core.prose_view(text)
-        return {
-            idx
-            for idx, line in enumerate(view.split("\n"), start=1)
-            if needle in line
-        }
-
-    def test_raw_character_counts_at_head(self):
-        """Guards the corpus itself. A failure here means the repo drifted."""
-        for rel, expected in EM_DASH_RAW.items():
-            got = (REPO / rel).read_text(encoding="utf-8").count(EM_DASH)
-            self.assertEqual(got, expected, "%s em dash count drifted" % rel)
-        for rel, expected in SEMICOLON_RAW.items():
-            got = (REPO / rel).read_text(encoding="utf-8").count(";")
-            self.assertEqual(got, expected, "%s semicolon count drifted" % rel)
-        self.assertEqual(sum(EM_DASH_RAW.values()), 11)
-        self.assertEqual(sum(SEMICOLON_RAW.values()), 14)
-
-    def test_defect_2_sk009_foreign_personal_path(self):
-        path = REPO / DEFECT_2_PATH
-        lines = [
-            idx
-            for idx, line in enumerate(path.read_text(encoding="utf-8").split("\n"), 1)
-            if DEFECT_2_NEEDLE in line
+        root = Path(REPO).resolve()
+        return [
+            path.resolve().relative_to(root).as_posix()
+            for path in core.repo_markdown(root)
         ]
-        self.assertEqual(lines, [76], "corpus drifted, .william/rfcs/ moved")
-        self.assertEqual(
-            lines_of(self.findings, "SK009", DEFECT_2_PATH),
-            {76},
-            "SK009 must fire on the foreign personal path at line 76",
-        )
-
-    def test_defect_7_sk105_recall(self):
-        self.assertIn(
-            "SK105",
-            codes_of([f for f in self.findings if f.path == DEFECT_7_PATH]),
-            "SK105 must fire on recall, which disables model invocation while "
-            "its description is written as an auto-trigger",
-        )
-        others = {
-            f.path for f in self.findings if f.code == "SK105"
-        } - {DEFECT_7_PATH}
-        self.assertEqual(others, set(), "SK105 fired outside recall")
-
-    def test_defect_8_em_dashes(self):
-        expected_files = set(EM_DASH_RAW)
-        got_files = {f.path for f in self.findings if f.code == "SK201"}
-        self.assertEqual(got_files, expected_files, "SK201 file set is wrong")
-        for rel in sorted(expected_files):
-            want_lines = self.prose_view_lines(rel, EM_DASH)
-            self.assertEqual(
-                lines_of(self.findings, "SK201", rel),
-                want_lines,
-                "%s: SK201 lines do not match the prose view" % rel,
-            )
-            count = len([f for f in self.findings if f.code == "SK201" and f.path == rel])
-            self.assertEqual(
-                count,
-                self.prose_view_count(rel, EM_DASH),
-                "%s: SK201 count does not match the prose view" % rel,
-            )
-            self.assertEqual(count, EM_DASH_LINTER[rel], "%s: SK201 count drifted" % rel)
-        self.assertEqual(
-            len([f for f in self.findings if f.code == "SK201"]),
-            EM_DASH_PROSE_VIEW_TOTAL,
-        )
-        self.assertEqual(self.total_prose_view(EM_DASH, expected_files), EM_DASH_PROSE_VIEW_TOTAL)
-
-    def test_defect_8_semicolons(self):
-        expected_files = set(SEMICOLON_RAW)
-        got_files = {f.path for f in self.findings if f.code == "SK203"}
-        self.assertEqual(got_files, expected_files, "SK203 file set is wrong")
-        for rel in sorted(expected_files):
-            want_lines = self.prose_view_lines(rel, ";")
-            self.assertEqual(
-                lines_of(self.findings, "SK203", rel),
-                want_lines,
-                "%s: SK203 lines do not match the prose view" % rel,
-            )
-            count = len([f for f in self.findings if f.code == "SK203" and f.path == rel])
-            self.assertEqual(
-                count,
-                self.prose_view_count(rel, ";"),
-                "%s: SK203 count does not match the prose view" % rel,
-            )
-            self.assertEqual(count, SEMICOLON_LINTER[rel], "%s: SK203 count drifted" % rel)
-        self.assertEqual(
-            len([f for f in self.findings if f.code == "SK203"]),
-            SEMICOLON_PROSE_VIEW_TOTAL,
-        )
-        self.assertEqual(self.total_prose_view(";", expected_files), SEMICOLON_PROSE_VIEW_TOTAL)
-
-    def test_defect_8_touches_every_listed_file(self):
-        for rel in sorted(set(EM_DASH_RAW) | set(SEMICOLON_RAW)):
-            hits = [f for f in self.findings if f.path == rel and f.code in ("SK201", "SK203")]
-            self.assertTrue(hits, "%s: expected at least one em dash or semicolon finding" % rel)
-
-    def test_defect_4_sk106_only_uninstalled_skill(self):
-        findings = lint_tree(REPO, check_installed=True)
-        flagged = set()
-        for finding in findings:
-            if finding.code == "SK106":
-                flagged.add(finding.path.split("/")[0])
-        self.assertEqual(
-            flagged,
-            {DEFECT_4_SKILL},
-            "SK106 must name improve-codebase-architecture and nothing else",
-        )
-
-    def test_repo_run_exits_nonzero(self):
-        result = cli(REPO)
-        self.assertNotEqual(
-            result.returncode, 0, "the current repo has real defects and must fail"
-        )
-        self.assertIn("across", result.stdout, "missing the summary line")
 
     def prose_view_count(self, rel_path, needle):
         core = load("core")
         view = core.prose_view((REPO / rel_path).read_text(encoding="utf-8"))
         return view.count(needle)
 
-    def total_prose_view(self, needle, rels):
-        return sum(self.prose_view_count(rel, needle) for rel in rels)
+    def test_corpus_is_lint_clean(self):
+        """The whole point of the project. No findings anywhere in the repo."""
+        self.assertTrue(self.corpus_paths(), "found no corpus markdown to lint")
+        self.assertEqual(
+            self.findings,
+            [],
+            "the repo must stay lint clean, got %s"
+            % sorted(str(f) for f in self.findings),
+        )
+
+    def test_raw_character_counts_at_head(self):
+        """Guards the corpus itself. A failure here means the repo drifted."""
+        paths = self.corpus_paths()
+        self.assertTrue(paths, "found no corpus markdown to count")
+        for rel in paths:
+            text = (REPO / rel).read_text(encoding="utf-8")
+            self.assertEqual(
+                text.count(EM_DASH),
+                EM_DASH_RAW.get(rel, 0),
+                "%s raw em dash count drifted" % rel,
+            )
+            self.assertEqual(
+                text.count(";"),
+                SEMICOLON_RAW.get(rel, 0),
+                "%s raw semicolon count drifted" % rel,
+            )
+        stale = (set(EM_DASH_RAW) | set(SEMICOLON_RAW)) - set(paths)
+        self.assertEqual(stale, set(), "the record names files nobody scans")
+        self.assertEqual(sum(EM_DASH_RAW.values()), 0)
+        self.assertEqual(sum(SEMICOLON_RAW.values()), 0)
+
+    def test_prose_view_counts_match_the_linter(self):
+        """The masked view and the reported findings must agree, at zero."""
+        for code, record, total, needle in (
+            ("SK201", EM_DASH_LINTER, EM_DASH_PROSE_VIEW_TOTAL, EM_DASH),
+            ("SK203", SEMICOLON_LINTER, SEMICOLON_PROSE_VIEW_TOTAL, ";"),
+        ):
+            reported = {}
+            for finding in self.findings:
+                if finding.code == code:
+                    reported[finding.path] = reported.get(finding.path, 0) + 1
+            self.assertEqual(reported, record, "%s findings drifted" % code)
+            self.assertEqual(sum(reported.values()), total)
+            for rel in self.corpus_paths():
+                self.assertEqual(
+                    self.prose_view_count(rel, needle),
+                    record.get(rel, 0),
+                    "%s: prose view %s count is not recorded" % (rel, code),
+                )
+
+    def test_sk105_fires_nowhere(self):
+        """recall still disables model invocation, but its description no longer
+        reads as an auto-trigger, so the check has nothing left to report."""
+        text = (REPO / DISABLED_INVOCATION_PATH).read_text(encoding="utf-8")
+        self.assertIn(
+            DISABLED_INVOCATION_KEY,
+            text,
+            "%s no longer disables model invocation, so this test proves nothing"
+            % DISABLED_INVOCATION_PATH,
+        )
+        self.assertEqual(
+            {f.path for f in self.findings if f.code == "SK105"},
+            set(),
+            "SK105 fired again, a description drifted back to trigger phrasing",
+        )
+
+    def test_sk106_fires_on_no_skill(self):
+        """Every skill here is symlinked into ~/.claude/skills, so it is dogfooded."""
+        core = load("core")
+        skills = core.discover_skills(REPO)
+        self.assertTrue(skills, "found no skills, so SK106 had nothing to check")
+        findings = lint_tree(REPO, check_installed=True)
+        flagged = sorted(
+            {f.path.split("/")[0] for f in findings if f.code == "SK106"}
+        )
+        self.assertEqual(
+            flagged, [], "these skills are not installed under ~/.claude/skills"
+        )
+
+    def test_repo_run_exits_zero(self):
+        result = cli(REPO)
+        self.assertEqual(
+            result.returncode,
+            0,
+            "the repo is clean and the CLI must exit 0: %s"
+            % (result.stdout + result.stderr),
+        )
+        self.assertIn("across", result.stdout, "missing the summary line")
 
 
 # --- Zero-match guard ---------------------------------------------------------
@@ -746,8 +724,10 @@ class BaselineCountTest(unittest.TestCase):
 class RealRepoGateTest(unittest.TestCase):
     """End to end on a copy of the real repo, the scenario that shipped broken.
 
-    README.md already carries seven em dashes and one semicolon at baseline, so
-    an eighth em dash used to vanish into the baseline and the gate exited 0.
+    The bug was count blindness. A file already recorded in the baseline could
+    take on unlimited new copies of the same defect and the gate still exited 0.
+    The copy gets a freshly written baseline, so this holds whatever the repo's
+    own backlog happens to be.
     """
 
     def test_new_defects_in_an_already_baselined_file_fail_the_gate(self):
@@ -876,7 +856,7 @@ class DiscoveryTest(unittest.TestCase):
 
 
 class KnownGapsTest(unittest.TestCase):
-    """Corpus defects 1, 3, 5, and 6 are not statically checkable here.
+    """Two corpus defects are not statically checkable here.
 
     Faking a test for them would be worse than admitting the gap. The manifest
     records each one, and this test keeps its locations honest so the gaps stay
@@ -890,7 +870,6 @@ class KnownGapsTest(unittest.TestCase):
         self.assertEqual(
             {gap["id"] for gap in gaps},
             {
-                "defect-3-half-finished-rfc-conversion",
                 "defect-5-routing-bypass",
                 "defect-6-cross-skill-self-modification",
             },
