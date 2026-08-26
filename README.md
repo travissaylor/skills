@@ -51,3 +51,21 @@ A collection of agent skills for Claude Code.
   ```
   npx skills@latest add travissaylor/skills/conductor
   ```
+
+## Skill linter
+
+`tools/lint_skills.py` checks every skill in this repo for structural defects and prose defects. Structure: frontmatter that disagrees with its directory name, links and backticked paths that do not resolve, cross-skill references with no matching directory, hardcoded home paths, leftover markers. Prose: em dashes, semicolons, curly quotes, title-case headings, AI vocabulary, filler, and stacked hedging, all drawn from the writing skills above. It is a static check. No model calls, and no third-party dependencies, Python 3 standard library only.
+
+See the full backlog:
+
+```
+make lint
+```
+
+Install the pre-commit hook, which blocks a commit that adds a new finding:
+
+```
+make install-hooks
+```
+
+Every finding code, how the baseline works, and the suppression directives are documented in [tools/README.md](tools/README.md).
