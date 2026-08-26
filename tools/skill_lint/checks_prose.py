@@ -152,7 +152,7 @@ BULLET_RE = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s")
 HEADING_RE = re.compile(r"^(#{1,6})\s+(.*?)\s*#*\s*$")
 PLURAL_S_RE = re.compile(r"[A-Za-z]+\(s\)", re.IGNORECASE)
 ENTITY_RE = re.compile(r"&(?:#\d+|#[xX][0-9a-fA-F]+|[A-Za-z][A-Za-z0-9]*);")
-SLASH_RE = re.compile(r"(?<![\w./~-])([A-Za-z]+)/([A-Za-z]+)(?![\w./-])")
+SLASH_RE = re.compile(r"(?<![\w./~-])([A-Za-z][A-Za-z0-9]*)/([A-Za-z][A-Za-z0-9]*)(?![\w./-])")
 WORD_RE = re.compile(r"[A-Za-z][A-Za-z'’-]*")
 
 # --- Helpers ---------------------------------------------------------------

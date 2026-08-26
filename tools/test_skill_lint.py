@@ -37,7 +37,7 @@ if str(TOOLS) not in sys.path:
     sys.path.insert(0, str(TOOLS))
 
 
-# --- Recorded corpus state at HEAD efffdcf ------------------------------------
+# --- Recorded corpus state after the conductor, README, and scannable fixes ---
 #
 # Raw character counts, straight off disk. The linter reports on the prose view,
 # where a character sitting inside a code span is masked out, so the linter's
@@ -45,29 +45,23 @@ if str(TOOLS) not in sys.path:
 # both, and only the derived prose-view numbers are asserted against findings.
 
 EM_DASH_RAW = {
-    "README.md": 7,
-    "conductor/SKILL.md": 35,
     "improve-codebase-architecture/SKILL.md": 8,
     "improve-codebase-architecture/REFERENCE.md": 3,
 }
 SEMICOLON_RAW = {
-    "README.md": 1,
-    "conductor/SKILL.md": 11,
     "improve-codebase-architecture/REFERENCE.md": 1,
     "prose/SKILL.md": 8,
     "recall/SKILL.md": 3,
-    "scannable/SKILL.md": 10,
     "technical-writing/SKILL.md": 1,
     "unslop/SKILL.md": 1,
 }
 
-# What the linter itself reports, one finding per prose-view occurrence. The
-# only place these part from the raw counts is scannable/SKILL.md, where a
-# semicolon sits inside a code span and the prose view masks it out.
+# What the linter itself reports, one finding per prose-view occurrence. Every
+# remaining occurrence sits in prose, so raw and prose-view counts agree.
 EM_DASH_LINTER = dict(EM_DASH_RAW)
-SEMICOLON_LINTER = dict(SEMICOLON_RAW, **{"scannable/SKILL.md": 9})
-EM_DASH_PROSE_VIEW_TOTAL = 53
-SEMICOLON_PROSE_VIEW_TOTAL = 35
+SEMICOLON_LINTER = dict(SEMICOLON_RAW)
+EM_DASH_PROSE_VIEW_TOTAL = 11
+SEMICOLON_PROSE_VIEW_TOTAL = 14
 
 EM_DASH = "—"
 EN_DASH = "–"
@@ -259,7 +253,9 @@ class SeededDefectTest(unittest.TestCase):
         self.check("sk204", "SK204", lines={8})
 
     def test_sk205_slash_construction(self):
-        self.check("sk205", "SK205", lines={8})
+        # Line 9 pins digit-bearing tokens like browser/E2E, which the first
+        # letters-only pattern missed.
+        self.check("sk205", "SK205", lines={8, 9})
 
     def test_sk206_title_case_heading(self):
         self.check("sk206", "SK206", lines={8})
@@ -355,8 +351,8 @@ class RepoCorpusTest(unittest.TestCase):
         for rel, expected in SEMICOLON_RAW.items():
             got = (REPO / rel).read_text(encoding="utf-8").count(";")
             self.assertEqual(got, expected, "%s semicolon count drifted" % rel)
-        self.assertEqual(sum(EM_DASH_RAW.values()), 53)
-        self.assertEqual(sum(SEMICOLON_RAW.values()), 36)
+        self.assertEqual(sum(EM_DASH_RAW.values()), 11)
+        self.assertEqual(sum(SEMICOLON_RAW.values()), 14)
 
     def test_defect_2_sk009_foreign_personal_path(self):
         path = REPO / DEFECT_2_PATH
@@ -894,7 +890,6 @@ class KnownGapsTest(unittest.TestCase):
         self.assertEqual(
             {gap["id"] for gap in gaps},
             {
-                "defect-1-nonexistent-tools",
                 "defect-3-half-finished-rfc-conversion",
                 "defect-5-routing-bypass",
                 "defect-6-cross-skill-self-modification",

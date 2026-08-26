@@ -1,7 +1,10 @@
 ---
 name: scannable
-description: "Deep restructuring pass: the full semantic-density, typographic-hierarchy, and ADHD re-orientation spec with sources. The `prose` skill carries the everyday core; load this for /scannable or when restructuring a wall of text."
+description: "Deep restructuring pass: the full semantic-density, typographic-hierarchy, and ADHD re-orientation spec with sources. The `prose` skill carries the everyday core. Load this for /scannable or when restructuring a wall of text."
 ---
+
+<!-- This file quotes filler and hedging phrases as counter-examples. Vocabulary checks are skipped here. Punctuation checks stay live. -->
+<!-- lint-skip-file: SK207,SK210,SK211,SK212,SK213 -->
 
 # Scannable
 
@@ -19,24 +22,24 @@ Run these on anything longer than a paragraph:
 
 ## Density: more meaning, fewer words
 
-- **Answer first.** The first sentence is the conclusion, answer, or ask. Detail and reasoning follow for readers who want them. Never bury the ask mid-paragraph; it gets its own line.
+- **Answer first.** The first sentence is the conclusion, answer, or ask. Detail and reasoning follow for readers who want them. Never bury the ask mid-paragraph. It gets its own line.
 - **One idea per sentence, one topic per paragraph.** Sentences under ~20 words. Split anything the reader must backtrack to parse.
 - **Concrete beats abstract.** The number, the file path, the command, the name. "Cut p99 from 800ms to 90ms", not "significant performance improvements".
-- **Match length to decision weight.** If the reader's next action is the same with half the words, cut half the words. A yes/no question deserves a yes/no answer plus one line of why.
+- **Match length to decision weight.** If the reader's next action is the same with half the words, cut half the words. A yes-or-no question deserves a yes-or-no answer plus one line of why.
 - **Name once, reuse exactly.** Define a term, then repeat it verbatim. Synonyms make the reader re-derive that two names are one thing.
 - **Never say it twice.** A heading, its first sentence, and a bold label must each add information, not restate each other.
 
-The `unslop` skill owns the language-level catalog (filler, hedging, AI vocabulary). Apply it alongside this one; density here is about information per sentence, not word choice.
+The `unslop` skill owns the language-level catalog (filler, hedging, AI vocabulary). Apply it alongside this one. Density here is about information per sentence, not word choice.
 
 ## Hierarchy: the layout carries the argument
 
 - **Headings carry the point, and come often.** Descriptive headings every few paragraphs turn F-pattern skimming into layer-cake scanning, where the reader hops heading to heading and drops in only where needed. "Retries mask the real failure", not "Background".
-- **Front-load every line.** The first 2-3 words of a heading, bullet, or paragraph carry its keyword. Scanners read the left edge; a bullet that opens with "It is also worth noting that the parser..." hides "parser" from them.
+- **Front-load every line.** The first 2-3 words of a heading, bullet, or paragraph carry its keyword. Scanners read the left edge, so a bullet that opens with "It is also worth noting that the parser..." hides "parser" from them.
 - **Bold is an anchor, not decoration.** Bold only the words a scanner needs to reconstruct the message: decisions, actions, names, numbers. When too much is bold, nothing is.
 - **Paragraphs run 1-4 lines.** Past that, split it or restructure it as a list.
-- **Lists**: bullets for unordered items, numbers for sequences, parallel grammar throughout, lead word front-loaded. 3-7 items per list; more than that gets grouped under subheadings.
+- **Lists**: bullets for unordered items, numbers for sequences, parallel grammar throughout, lead word front-loaded. 3-7 items per list. More than that gets grouped under subheadings.
 - **Tables** for enumerable comparisons (several items x several attributes). Reasoning stays in prose around the table, not inside cells.
-- **White space is structure.** Blank lines separate logical units and give the eye anchor points; W3C lists white space as a cognitive-accessibility pattern in its own right.
+- **White space is structure.** Blank lines separate logical units and give the eye anchor points. W3C lists white space as a cognitive-accessibility pattern in its own right.
 - **Code font** for every identifier, path, flag, and command.
 
 ## Re-orientation: the ADHD layer
@@ -46,7 +49,7 @@ Structure is what lets a distracted reader recover. W3C's cognitive-accessibilit
 - **Capsule up top.** Anything past one screen opens with a 1-3 line summary of what this is and what the reader should do.
 - **Signpost counts.** "Three problems:" then exactly three. The reader tracks progress and knows when they're done.
 - **One next action.** End with the single concrete next step, visually isolated. Ten possible actions is zero actions.
-- **Chunk in 3-5s.** Groups of 3-5 items are holdable in working memory; bigger sets get subheadings.
+- **Chunk in 3-5s.** Groups of 3-5 items are holdable in working memory. Bigger sets get subheadings.
 - **Sections stand alone.** Don't make section 4 depend on remembering section 2. Repeat the noun across section boundaries instead of "it" or "this".
 - **Predictable shape.** Similar documents keep the same section order, so the reader learns the map once. Status updates, reviews, and briefs each get one stable template, not a new structure per instance.
 
@@ -56,7 +59,7 @@ Structure is what lets a distracted reader recover. W3C's cognitive-accessibilit
 - **Not decoration.** No emojis as bullets, no bolding for emphasis-feel, no boxes and dividers for their own sake. Every visual element either aids navigation or goes.
 - **Not a length cap.** Density means no wasted words, not few words. A complex decision deserves its full supporting detail, laid out so the reader can skip it.
 
-With `technical-writing`: that skill owns document standards (Diátaxis mode, style, STE); this one owns density and layout. They compose. In reference-mode docs, its "be dry and complete" wins over brevity; the layout rules here still apply.
+With `technical-writing`: that skill owns document standards (Diátaxis mode, style, STE), and this one owns density and layout. They compose. In reference-mode docs, its "be dry and complete" wins over brevity, but the layout rules here still apply.
 
 ## Worked example
 
@@ -71,7 +74,7 @@ After:
 > 1. **Retry logic retries 4xx errors**, which never succeed. This fills the queue and is the main issue.
 > 2. **Timeout is 30s**, inflating each stuck attempt's cost. Secondary.
 >
-> Next: fix the 4xx retry check in `webhook-worker`; revisit the timeout only if the backlog persists.
+> Next: fix the 4xx retry check in `webhook-worker`. Revisit the timeout only if the backlog persists.
 
 The fixes: conclusion moved to the first line (answer first), findings signposted and numbered (signpost counts), lead words front-loaded and bolded (left-edge test), hedges cut ("seems like", "probably", "maybe"), one isolated next action.
 

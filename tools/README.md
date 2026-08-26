@@ -103,7 +103,7 @@ Codes are frozen. A new check gets a new code, and a retired check leaves its nu
 
 ## The baseline
 
-This repo has real findings today: 94 errors and 6 warnings, mostly 53 em dashes and 35 semicolons across the seven skills and the README. Those are genuine defects, and fixing them is a separate job from shipping the linter.
+This repo has real findings today: 27 errors and 3 warnings, mostly 11 em dashes and 14 semicolons, concentrated in `improve-codebase-architecture` and the rule-source skills. Those are genuine defects, and fixing them is a separate job from shipping the linter.
 
 Without a baseline the pre-commit hook would block every commit in the repo from the day it was installed. A hook that always fails gets deleted within a week, and then nothing is checked at all. The baseline records what is already broken so the gate only fires on what a commit adds.
 
@@ -122,7 +122,7 @@ Two properties matter:
 
 **Keys carry no line number.** A key is `code`, `path`, and `message`, tab separated. Editing an unrelated paragraph shifts every line below it. If keys held line numbers, that edit would churn the whole baseline and bury the one finding that matters. Without them, the baseline stays still.
 
-**Matching is by count, not by presence.** The baseline allows 7 em dashes in `README.md`. An 8th is reported and fails the gate, even though an em dash in `README.md` is already a recorded violation. Presence matching would let a file accumulate unlimited new copies of a defect it already had.
+**Matching is by count, not by presence.** Suppose the baseline allows 7 em dashes in a file. An 8th is reported and fails the gate, even though an em dash in that file is already a recorded violation. Presence matching would let a file accumulate unlimited new copies of a defect it already had.
 
 When the baseline filters a key, it skips the lowest line numbers first, so the findings it does report carry real line numbers you can jump to.
 
@@ -141,7 +141,7 @@ Two HTML comments turn off checks in a file:
 
 **The rule: suppress a check only when the file is a legitimate exception, never to hide a defect.**
 
-Three skills carry file-wide suppressions today. `prose`, `unslop`, and `technical-writing` are dictionaries of banned words. They must quote "delve" and "utilize" and "flywheel" to teach an agent to avoid them, so every vocabulary check fires on every rule they define. Each of those three carries:
+Four skills carry file-wide suppressions today. `prose`, `unslop`, and `technical-writing` are dictionaries of banned words, and `scannable` quotes filler and hedging phrases as counter-examples. They must quote "delve" and "utilize" and "It is also worth noting" to teach an agent to avoid them, so vocabulary checks fire on the rules they define. Each of the four carries:
 
 ```
 <!-- lint-skip-file: SK207,SK210,SK211,SK212,SK213 -->
@@ -153,11 +153,10 @@ That list is the word-list codes and nothing else. The punctuation codes SK201 t
 
 ## Known gaps
 
-Four defects in the acceptance corpus cannot be caught by static analysis. They are recorded in `tools/fixtures/known_gaps.json` and held under test in `KnownGapsTest`, so the gap is visible instead of forgotten:
+Three defects in the acceptance corpus cannot be caught by static analysis. They are recorded in `tools/fixtures/known_gaps.json` and held under test in `KnownGapsTest`, so the gap is visible instead of forgotten:
 
 | Gap | The defect | What would catch it |
 |---|---|---|
-| `defect-1-nonexistent-tools` | `conductor/SKILL.md:41` tells the agent to track progress with `TaskCreate` and `TaskUpdate`. Neither tool exists, so the step silently drops on every run. | A registry of valid tool names refreshed from the runtime, plus a check that every tool-looking token resolves against it. |
 | `defect-3-half-finished-rfc-conversion` | `improve-codebase-architecture` is half converted from GitHub issue RFCs to Markdown file RFCs. The opening promises issues, the step body writes a file, and `REFERENCE.md` still ships an issue template. | Semantic contradiction detection across a skill and its bundled files, most likely model graded. |
 | `defect-5-routing-bypass` | `recall/SKILL.md:33` sends the agent straight to `unslop`, while `prose` states that it is the entry point and the deep passes must not be loaded ahead of it. | The planned `routes-to` frontmatter key, which turns the routing claim into data the linter can check both ways. |
 | `defect-6-cross-skill-self-modification` | `technical-writing/SKILL.md:21` instructs the agent to edit another skill's rule list. That is unbounded cross-skill self-modification with no guard on what may be written. | A policy check over write targets, driven by a declared per-skill write scope in frontmatter. |

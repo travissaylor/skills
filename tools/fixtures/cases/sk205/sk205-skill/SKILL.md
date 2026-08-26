@@ -6,3 +6,4 @@ description: A fixture skill whose body joins two words with a slash instead of 
 # Fixture
 
 Send the report to the author and/or the reviewer.
+Run the browser/E2E suite before merging.

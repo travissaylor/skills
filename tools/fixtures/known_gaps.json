@@ -3,15 +3,6 @@
   "note": "Acceptance-corpus defects that static analysis in this linter cannot reach. Each entry stays under test so the gap cannot rot away unnoticed. See tools/test_skill_lint.py, KnownGapsTest.",
   "gaps": [
     {
-      "id": "defect-1-nonexistent-tools",
-      "path": "conductor/SKILL.md",
-      "line": 41,
-      "anchor": "TaskCreate/TaskUpdate",
-      "defect": "The skill tells the agent to track progress with TaskCreate and TaskUpdate. Neither tool exists in this environment, so the step silently drops on every run.",
-      "why_not_checkable": "The linter has no idea which tool names the runtime exposes. Any name in backticks reads the same to it.",
-      "what_would_catch_it": "A registry of valid tool names, refreshed from the runtime, plus a check that every capitalised tool-looking token in a skill body resolves against it."
-    },
-    {
       "id": "defect-3-half-finished-rfc-conversion",
       "path": "improve-codebase-architecture/SKILL.md",
       "line": 8,
