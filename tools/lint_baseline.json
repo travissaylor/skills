@@ -1,28 +1,4 @@
 {
   "version": 2,
-  "counts": {
-    "SK009\timprove-codebase-architecture/SKILL.md\tforeign personal path .william/": 1,
-    "SK105\trecall/SKILL.md\tdisable-model-invocation is true, so the description trigger phrases never fire: \"recall my work on X\", \"catch me up\", \"what have I been working on\"": 1,
-    "SK201\tREADME.md\tem dash, use a period or a comma": 7,
-    "SK201\tconductor/SKILL.md\tem dash, use a period or a comma": 35,
-    "SK201\timprove-codebase-architecture/REFERENCE.md\tem dash, use a period or a comma": 3,
-    "SK201\timprove-codebase-architecture/SKILL.md\tem dash, use a period or a comma": 8,
-    "SK203\tREADME.md\tsemicolon, use a period instead": 1,
-    "SK203\tconductor/SKILL.md\tsemicolon, use a period instead": 11,
-    "SK203\timprove-codebase-architecture/REFERENCE.md\tsemicolon, use a period instead": 1,
-    "SK203\tprose/SKILL.md\tsemicolon, use a period instead": 8,
-    "SK203\trecall/SKILL.md\tsemicolon, use a period instead": 3,
-    "SK203\tscannable/SKILL.md\tsemicolon, use a period instead": 9,
-    "SK203\ttechnical-writing/SKILL.md\tsemicolon, use a period instead": 1,
-    "SK203\tunslop/SKILL.md\tsemicolon, use a period instead": 1,
-    "SK205\tconductor/SKILL.md\t\"TaskCreate/TaskUpdate\" is a slash construction, write \"TaskCreate, TaskUpdate, or both\"": 1,
-    "SK205\tconductor/SKILL.md\t\"pass/fail\" is a slash construction, write \"pass, fail, or both\"": 1,
-    "SK205\timprove-codebase-architecture/SKILL.md\t\"modules/concepts\" is a slash construction, write \"modules, concepts, or both\"": 1,
-    "SK205\tscannable/SKILL.md\t\"yes/no\" is a slash construction, write \"yes, no, or both\"": 2,
-    "SK206\timprove-codebase-architecture/SKILL.md\theading \"Improve Codebase Architecture\" is title case, use sentence case": 1,
-    "SK212\tREADME.md\t\"harness\" is an abstract metaphor, use the concrete word": 1,
-    "SK212\tconductor/SKILL.md\t\"harness\" is an abstract metaphor, use the concrete word": 1,
-    "SK212\tconductor/SKILL.md\t\"surface\" is an abstract metaphor, use the concrete word": 1,
-    "SK212\timprove-codebase-architecture/SKILL.md\t\"surface\" is an abstract metaphor, use the concrete word": 1
-  }
+  "counts": {}
 }
