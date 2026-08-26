@@ -1,6 +1,6 @@
 ---
 name: technical-writing
-description: "Deep documentation pass: Diátaxis structure, Google developer style, STE instruction rules, Global English syntax. The `prose` skill routes here for formal docs (READMEs, RFCs, ERDs, Confluence pages, doc sets); also /technical-writing."
+description: "Deep documentation pass: Diátaxis structure, Google developer style, STE instruction rules, Global English syntax. The `prose` skill routes here for formal docs (READMEs, RFCs, ERDs, Confluence pages, doc sets). Also loads on /technical-writing."
 ---
 
 <!-- This file is a dictionary of banned words and quotes them as examples. Vocabulary checks are skipped here. Punctuation checks stay live. -->
