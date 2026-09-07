@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Conductor unit report",
+  "description": "The structured report every executor returns for one unit. Enforced with codex --output-schema and agy --json-schema.",
+  "type": "object",
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": ["done", "partial", "blocked"],
+      "description": "done: every acceptance item met. partial: some met, work stopped. blocked: could not proceed."
+    },
+    "files_changed": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Repo-relative paths created or edited. Paths only."
+    },
+    "acceptance": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "item": { "type": "string" },
+          "met": { "type": "boolean" },
+          "note": { "type": "string" }
+        },
+        "required": ["item", "met", "note"],
+        "additionalProperties": false
+      },
+      "description": "One entry per acceptance checklist item from the brief, in order."
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "command": { "type": "string" },
+          "passed": { "type": "boolean" },
+          "output": { "type": "string", "description": "Trimmed failure output only. Empty when passed." }
+        },
+        "required": ["command", "passed", "output"],
+        "additionalProperties": false
+      },
+      "description": "Scoped checks the executor ran."
+    },
+    "blockers": {
+      "type": "string",
+      "description": "What stopped the work, or what the orchestrator must decide. Empty when none."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Anything the orchestrator needs to know that the diff does not show: assumptions, seams with other units, follow-ups. Short."
+    }
+  },
+  "required": ["status", "files_changed", "acceptance", "checks", "blockers", "notes"],
+  "additionalProperties": false
+}

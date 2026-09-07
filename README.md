@@ -44,6 +44,12 @@ A collection of agent skills for Claude Code.
   npx skills@latest add travissaylor/skills/conductor
   ```
 
+- **conductor-multi**: Conductor with pluggable executors: each work unit runs on a Claude subagent, OpenAI Codex CLI, or Google Antigravity CLI (agy), launched in parallel by a small script that pins sandbox and output flags. Same in-session adjudication, gates, and commits.
+
+  ```
+  npx skills@latest add travissaylor/skills/conductor-multi
+  ```
+
 ## Skill linter
 
 `tools/lint_skills.py` checks every skill in this repo for structural defects and prose defects. Structure: frontmatter that disagrees with its directory name, links and backticked paths that do not resolve, cross-skill references with no matching directory, hardcoded home paths, leftover markers. Prose: em dashes, semicolons, curly quotes, title-case headings, AI vocabulary, filler, and stacked hedging, all drawn from the writing skills above. It is a static check. No model calls, and no third-party dependencies, Python 3 standard library only.
