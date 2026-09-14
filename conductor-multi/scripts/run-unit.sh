@@ -14,14 +14,41 @@
 #          <run-dir>/<unit>.events.jsonl  codex event stream
 #          <run-dir>/<unit>.raw.json      agy response envelope
 #          <run-dir>/<unit>.stderr
-# Exit:    0 when outcome is "completed" and result.json exists, else 1.
+# Exit:    0 completed with a JSON object report, 1 execution failure, 2 usage error.
 set -u
+
+usage() {
+  cat <<'EOF'
+Usage: run-unit.sh --backend codex|agy --unit <id> --run-dir <dir> --repo <path>
+                   [--model <name>] [--resume <thread-or-conversation-id>]
+                   [--stall <secs>] [--max <secs>]
+
+Reads <run-dir>/<unit>.brief.md. Writes result.json, meta.json, and stderr
+with the same unit prefix; prints outcome, elapsed time, and artifact paths.
+--stall defaults to 600 seconds (Codex only); --max defaults to 3600 seconds.
+Timeouts must be positive decimal integers, at most 2147483617 seconds.
+--help, -h  Show this help without launching an executor.
+Exit codes: 0 completed, 1 execution failure, 2 invalid arguments or setup.
+EOF
+}
+
+usage_error() {
+  printf 'run-unit.sh: %s\nRun run-unit.sh --help for usage.\n' "$1" >&2
+  exit 2
+}
 
 BACKEND="" UNIT="" RUN_DIR="" REPO="" MODEL="" RESUME=""
 STALL=600   # codex only: kill when no new event for this long
 MAX=3600    # both: wall-clock ceiling
 
 while [ $# -gt 0 ]; do
+  case "$1" in
+    --help|-h) usage; exit 0 ;;
+    --backend|--unit|--run-dir|--repo|--model|--resume|--stall|--max)
+      [ $# -ge 2 ] && [ -n "$2" ] && [[ "$2" != --* ]] || usage_error "$1 requires a value"
+      ;;
+    *) usage_error "unknown argument: $1" ;;
+  esac
   case "$1" in
     --backend) BACKEND="$2"; shift 2 ;;
     --unit)    UNIT="$2"; shift 2 ;;
@@ -31,31 +58,42 @@ while [ $# -gt 0 ]; do
     --resume)  RESUME="$2"; shift 2 ;;
     --stall)   STALL="$2"; shift 2 ;;
     --max)     MAX="$2"; shift 2 ;;
-    *) echo "unknown arg: $1" >&2; exit 2 ;;
   esac
 done
 
 for v in BACKEND UNIT RUN_DIR REPO; do
-  [ -n "${!v}" ] || { echo "missing --$(echo $v | tr 'A-Z_' 'a-z-')" >&2; exit 2; }
+  [ -n "${!v}" ] || usage_error "missing --$(printf '%s' "$v" | tr 'A-Z_' 'a-z-')"
 done
-case "$BACKEND" in codex|agy) ;; *) echo "backend must be codex or agy" >&2; exit 2 ;; esac
-command -v "$BACKEND" >/dev/null || { echo "$BACKEND not on PATH" >&2; exit 2; }
-command -v jq >/dev/null || { echo "jq is required" >&2; exit 2; }
+case "$BACKEND" in codex|agy) ;; *) usage_error "--backend must be codex or agy" ;; esac
+for v in STALL MAX; do
+  value="${!v}"
+  [[ "$value" =~ ^[1-9][0-9]*$ ]] && [ "${#value}" -le 10 ] && [ "$value" -le 2147483617 ] ||
+    usage_error "--$(printf '%s' "$v" | tr 'A-Z' 'a-z') must be a positive decimal integer at most 2147483617"
+done
+command -v "$BACKEND" >/dev/null || usage_error "$BACKEND not on PATH; install it or choose an available backend"
+command -v jq >/dev/null || usage_error "jq not on PATH; install jq to read and write executor reports"
 
 SCHEMA="$(cd "$(dirname "$0")/.." && pwd)/result.schema.json"
-REPO="$(cd "$REPO" && pwd)"
-mkdir -p "$RUN_DIR"
-RUN_DIR="$(cd "$RUN_DIR" && pwd)"
+REPO="$(cd "$REPO" 2>/dev/null && pwd)" || usage_error "--repo must name an accessible directory"
+[ -r "$RUN_DIR/$UNIT.brief.md" ] && [ -f "$RUN_DIR/$UNIT.brief.md" ] ||
+  usage_error "brief not found or unreadable: $RUN_DIR/$UNIT.brief.md; write it before launching"
+RUN_DIR="$(cd "$RUN_DIR" 2>/dev/null && pwd)" || usage_error "--run-dir must name an accessible directory"
 BRIEF="$RUN_DIR/$UNIT.brief.md"
 RESULT="$RUN_DIR/$UNIT.result.json"
 META="$RUN_DIR/$UNIT.meta.json"
 EVENTS="$RUN_DIR/$UNIT.events.jsonl"
 RAW="$RUN_DIR/$UNIT.raw.json"
 STDERR="$RUN_DIR/$UNIT.stderr"
-[ -f "$BRIEF" ] || { echo "brief not found: $BRIEF" >&2; exit 2; }
 rm -f "$RESULT" "$META"
 
-mtime() { stat -f %m "$1" 2>/dev/null || stat -c %Y "$1" 2>/dev/null || echo 0; }
+mtime() {
+  local stamp
+  if stamp=$(stat -f %m "$1" 2>/dev/null) || stamp=$(stat -c %Y "$1" 2>/dev/null); then
+    printf '%s\n' "$stamp"
+  else
+    echo 0
+  fi
+}
 
 START=$(date +%s)
 OUTCOME="completed"
@@ -113,19 +151,45 @@ else
     pkill -KILL -P "$PID" 2>/dev/null; kill -KILL "$PID" 2>/dev/null
   fi
   wait "$PID" 2>/dev/null; EXIT=$?
-  THREAD=$(jq -r '.conversation_id // empty' "$RAW" 2>/dev/null)
-  USAGE=$(jq -c '.usage // empty' "$RAW" 2>/dev/null)
-  AGY_STATUS=$(jq -r '.status // empty' "$RAW" 2>/dev/null)
-  ERROR=$(jq -c '.error // empty' "$RAW" 2>/dev/null)
-  if [ "$AGY_STATUS" = "SUCCESS" ] && jq -e '.structured_output != null' "$RAW" >/dev/null 2>&1; then
-    jq '.structured_output' "$RAW" > "$RESULT"
-  elif [ "$OUTCOME" = "completed" ]; then
-    OUTCOME="failed"; [ -z "$ERROR" ] && ERROR="\"agy status: ${AGY_STATUS:-none}\""
+  if ! jq -se 'length == 1 and (.[0] | type == "object")' "$RAW" >/dev/null 2>&1; then
+    ERROR=$(jq -n --arg path "$RAW" '"agy response missing or malformed; inspect " + $path')
+    [ "$OUTCOME" = "completed" ] && OUTCOME="failed"
+  else
+    THREAD=$(jq -r '.conversation_id // empty' "$RAW" 2>/dev/null)
+    USAGE=$(jq -c '.usage // empty' "$RAW" 2>/dev/null)
+    AGY_STATUS=$(jq -r '.status // empty' "$RAW" 2>/dev/null)
+    ERROR=$(jq -c '.error // empty' "$RAW" 2>/dev/null)
+    if [ "$AGY_STATUS" = "SUCCESS" ] && jq -e '.structured_output != null' "$RAW" >/dev/null 2>&1; then
+      jq '.structured_output' "$RAW" > "$RESULT"
+    elif [ "$OUTCOME" = "completed" ]; then
+      OUTCOME="failed"
+      [ -z "$ERROR" ] && ERROR=$(jq -n --arg status "${AGY_STATUS:-none}" '"agy status: " + $status + "; inspect stderr before retrying"')
+    fi
   fi
 fi
 
 END=$(date +%s)
-[ "$OUTCOME" = "completed" ] && { [ -s "$RESULT" ] && jq -e . "$RESULT" >/dev/null 2>&1 || OUTCOME="failed"; }
+REASON=""
+case "$OUTCOME" in
+  timeout) REASON="wall-clock limit exceeded; inspect stderr before retrying with --max" ;;
+  stalled) REASON="event stream inactive; inspect stderr before retrying with --stall" ;;
+esac
+if [ "$OUTCOME" = "completed" ]; then
+  if [ "$EXIT" -ne 0 ]; then
+    OUTCOME="failed"; REASON="$BACKEND exited with code $EXIT; inspect stderr before retrying"
+  elif [ ! -s "$RESULT" ]; then
+    OUTCOME="failed"; REASON="result report missing or empty; inspect stderr before retrying"
+  elif ! jq -se 'length == 1 and (.[0] | type == "object")' "$RESULT" >/dev/null 2>&1; then
+    OUTCOME="failed"; REASON="result report must contain one JSON object; inspect the report before retrying"
+  fi
+fi
+if [ "$OUTCOME" != "completed" ]; then
+  if [ -z "$REASON" ]; then
+    REASON=$(printf '%s' "${ERROR:-null}" | jq -r 'if type == "object" then .message // . else . end | if . == null then "executor failed; inspect stderr before retrying" elif type == "string" then . else tojson end')
+  elif [ -z "${ERROR:-}" ]; then
+    ERROR=$(jq -n --arg reason "$REASON" '$reason')
+  fi
+fi
 
 jq -n \
   --arg backend "$BACKEND" --arg unit "$UNIT" --arg outcome "$OUTCOME" \
@@ -135,5 +199,11 @@ jq -n \
   '{backend:$backend, unit:$unit, outcome:$outcome, exit_code:$exit, model:$model,
     thread_id:$thread, seconds:$seconds, usage:$usage, error:$error}' > "$META"
 
-echo "$UNIT [$BACKEND] $OUTCOME in $((END - START))s (thread ${THREAD:-none})"
+printf '%s [%s] %s in %ss (thread %s)\n' "$UNIT" "$BACKEND" "$OUTCOME" "$((END - START))" "${THREAD:-none}"
+printf 'report: %s\nmeta: %s\nstderr: %s\n' "$RESULT" "$META" "$STDERR"
+if [ -n "$REASON" ]; then
+  # Keep multiline or verbose backend errors out of the completion summary.
+  SUMMARY=$(printf '%s' "$REASON" | jq -Rs 'gsub("[[:cntrl:][:space:]]+"; " ") | if length > 240 then .[:237] + "..." else . end')
+  printf 'reason: %s\n' "$SUMMARY"
+fi
 [ "$OUTCOME" = "completed" ]
