@@ -8,13 +8,16 @@
 # Targets: ~/.claude/skills ~/.codex/skills ~/.agents/skills (SKILL_TARGETS
 # overrides, space separated). A link that already points here is left alone.
 # Anything else at the target path, a copy or a link elsewhere, is moved to
-# <name>.bak-<timestamp> beside it before the link is made. Nothing is deleted.
+# ~/.skills-backup/<timestamp>/<target dir name>/<name> before the link is
+# made, outside every directory the agents scan, so a stale SKILL.md cannot
+# keep loading under the same skill name. Nothing is deleted.
 set -u
 
 REPO=$(cd "$(dirname "$0")/.." && pwd)
 TARGETS="${SKILL_TARGETS:-$HOME/.claude/skills $HOME/.codex/skills $HOME/.agents/skills}"
 DRY=0; [ "${1:-}" = "--dry-run" ] && DRY=1
 STAMP=$(date +%Y%m%d-%H%M%S)
+BACKUP_ROOT="${SKILL_BACKUP_ROOT:-$HOME/.skills-backup}"
 
 run() { if [ "$DRY" = 1 ]; then echo "  would: $*"; else "$@"; fi; }
 
@@ -27,8 +30,10 @@ for target in $TARGETS; do
       echo "  ok      $name"; continue
     fi
     if [ -e "$dest" ] || [ -L "$dest" ]; then
-      echo "  replace $name (moved old to $name.bak-$STAMP)"
-      run mv "$dest" "$dest.bak-$STAMP"
+      bdir="$BACKUP_ROOT/$STAMP/$(basename "$(dirname "$target")")-$(basename "$target")"
+      echo "  replace $name (moved old to $bdir/$name)"
+      run mkdir -p "$bdir"
+      run mv "$dest" "$bdir/$name"
     else
       echo "  link    $name"
     fi

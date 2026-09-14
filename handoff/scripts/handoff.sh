@@ -16,7 +16,8 @@
 #
 # Peers: one ssh host per line in ~/handoffs/peers. HANDOFF_PEERS (space
 # separated) adds more. Unreachable peers are reported, never fatal.
-# Project: basename of the git top level, or of the cwd outside a repo.
+# Project: basename of the git top level, or of the cwd outside a repo, so
+# run this from inside the project. HANDOFF_PROJECT overrides the name.
 set -u
 
 ROOT="${HANDOFF_ROOT:-$HOME/handoffs}"
@@ -26,6 +27,7 @@ SSH_OPTS="-o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-n
 die() { echo "handoff.sh: $*" >&2; exit 1; }
 
 project_name() {
+  if [ -n "${HANDOFF_PROJECT:-}" ]; then echo "$HANDOFF_PROJECT"; return; fi
   local top
   top=$(git rev-parse --show-toplevel 2>/dev/null) || top=$PWD
   basename "$top"
@@ -62,7 +64,10 @@ cmd_new() {
   [ -n "$slug" ] || die "new needs a slug"
   slug=$(echo "$slug" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//')
   local dir; dir=$(project_dir)
-  echo "$dir/$(date +%Y-%m-%d)-$slug.md"
+  # Date and minute keep names unique across machines that sync later.
+  local path="$dir/$(date +%Y-%m-%d-%H%M)-$slug.md"
+  while [ -e "$path" ]; do path="${path%.md}-$(date +%S%N | cut -c1-4).md"; sleep 0.01; done
+  echo "$path"
 }
 
 fm_value() { # fm_value <file> <key>
@@ -79,14 +84,17 @@ cmd_latest() {
     esac
   done
   local dir; dir=$(project_dir)
-  local found=0
+  local found=0 f name
   # ls -t: newest first by modification time, which survives rsync -a.
-  for f in $(ls -t "$dir"/*.md 2>/dev/null); do
+  # Read line by line so a path with spaces stays one path.
+  while IFS= read -r name; do
+    [ -n "$name" ] || continue
+    f="$dir/$name"
     [ "$(fm_value "$f" status)" = "open" ] || continue
     if [ -n "$branch" ] && [ "$(fm_value "$f" branch)" != "$branch" ]; then continue; fi
     echo "$f"; found=1
     [ "$all" = 1 ] || break
-  done
+  done < <(cd "$dir" && ls -t -- *.md 2>/dev/null)
   [ "$found" = 1 ]
 }
 
