@@ -23,7 +23,7 @@ install-hooks:
 	git config core.hooksPath .githooks
 	chmod +x .githooks/pre-commit
 
-# Symlinks every skill into ~/.claude/skills, ~/.codex/skills, and ~/.agents/skills.
+# Symlinks every skill into the Claude, Codex, agents, and Gemini skill directories.
 install:
 	tools/install_skills.sh
 

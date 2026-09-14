@@ -16,8 +16,9 @@
 #
 # Peers: one ssh host per line in ~/handoffs/peers. HANDOFF_PEERS (space
 # separated) adds more. Unreachable peers are reported, never fatal.
-# Project: basename of the git top level, or of the cwd outside a repo, so
-# run this from inside the project. HANDOFF_PROJECT overrides the name.
+# Project: basename of the main repository, which is the same from any linked
+# worktree, or of the cwd outside a repo, so run this from inside the project.
+# HANDOFF_PROJECT overrides the name.
 set -u
 
 ROOT="${HANDOFF_ROOT:-$HOME/handoffs}"
@@ -28,8 +29,14 @@ die() { echo "handoff.sh: $*" >&2; exit 1; }
 
 project_name() {
   if [ -n "${HANDOFF_PROJECT:-}" ]; then echo "$HANDOFF_PROJECT"; return; fi
-  local top
-  top=$(git rev-parse --show-toplevel 2>/dev/null) || top=$PWD
+  local common top
+  # --git-common-dir points at the main repo's .git even from a linked
+  # worktree, so every worktree shares one ~/handoffs/<project>/.
+  if common=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null); then
+    top=$(dirname "$common")
+  else
+    top=$PWD
+  fi
   basename "$top"
 }
 

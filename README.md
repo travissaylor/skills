@@ -30,7 +30,7 @@ A collection of agent skills for Claude Code.
 
 ## Context
 
-Three skills that carry a session across agents (Claude Code, Codex) and machines. Handoff documents live in `~/handoffs/<project>/` and sync between machines over rsync, so the same file is there whichever agent picks it up. Install all three together.
+Three skills that carry a session across agents (Claude Code, Codex, Antigravity) and machines. Handoff documents live in `~/handoffs/<project>/` and sync between machines over rsync, so the same file is there whichever agent picks it up. Install all three together.
 
 - **handoff**: Write a handoff document into the shared store, commit and push the branch so the tree travels too, and sync to peer machines. Ships the store script the other two use.
 
@@ -68,7 +68,7 @@ To sync between machines, list each peer's ssh host name in `~/handoffs/peers`, 
 
 ## Installing from a clone
 
-`make install` symlinks every skill in this repo into `~/.claude/skills`, `~/.codex/skills`, and `~/.agents/skills`, so each agent loads the same versioned copy. Anything already at a target path is moved aside with a `.bak-<timestamp>` suffix, never deleted. Run it on each machine after cloning or pulling a skill that was added since.
+`make install` symlinks every skill in this repo into `~/.claude/skills`, `~/.codex/skills`, `~/.agents/skills`, and `~/.gemini/skills`, so each agent loads the same versioned copy. Anything already at a target path is moved aside with a `.bak-<timestamp>` suffix, never deleted. Run it on each machine after cloning or pulling a skill that was added since.
 
 ## Skill linter
 

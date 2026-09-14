@@ -1,6 +1,6 @@
 ---
 name: resume
-description: "Pick up work from the newest handoff document in the shared ~/handoffs store for this project, verify the tree matches it, and continue. Runs only when the user invokes /resume, at the start of a session that follows a handoff from any agent or machine."
+description: "Pick up work from the newest handoff document in the shared ~/handoffs store for this project, verify the tree matches it, and continue. Runs when the user invokes /resume or asks to pick up where the last session left off, at the start of a session that follows a handoff from any agent or machine."
 argument-hint: "Optional branch or handoff file to resume, if not the newest"
 disable-model-invocation: true
 ---
@@ -9,7 +9,7 @@ disable-model-invocation: true
 
 **You start where the last session stopped, whichever agent or machine it ran on.** The `handoff` skill wrote a document into `~/handoffs/<project>/` and synced it here. You find it, check that the tree matches it, and get to work. Short on purpose. When there is no handoff, the `recall` skill does the heavy reconstruction instead.
 
-The store script is `../handoff/scripts/handoff.sh` relative to this skill's directory. Resolve that to an absolute path once, then call it with the project root as your working directory, because the script names the project from the cwd. Running it from the skill directory looks up the wrong project. If the handoff skill is not installed, do the same steps by hand: `ls -t ~/handoffs/<project>/` and read the newest file whose `status` is `open`.
+The store script is `../handoff/scripts/handoff.sh` relative to the directory holding this file, so `~/.agents/skills/handoff/scripts/handoff.sh` on a standard install, with identical links under `~/.claude/skills`, `~/.codex/skills`, and `~/.gemini/skills`. Resolve it to an absolute path once. Do not run the relative form from the project root, where `../handoff` does not exist. Call the resolved path with the project root as your working directory, because the script names the project from the cwd. If the handoff skill is not installed, do the same steps by hand: `ls -t ~/handoffs/<project>/` and read the newest file whose `status` is `open`.
 
 1. **Sync first.** From the project root, run the script's `sync` so a document written on another machine arrives before you look. An unreachable peer is a note in your reply, not a stop.
 2. **Find the document.** Run the script's `latest`, or `latest --branch <b>` if the user named a branch, or read the file the user named. No open document means no handoff. Say so and offer `recall`.
