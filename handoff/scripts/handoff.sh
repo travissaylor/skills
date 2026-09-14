@@ -256,7 +256,8 @@ case "$COMMAND" in
         *) usage_error "latest: unexpected argument: $1" ;;
       esac
     done
-    set -- "${args[@]}"
+    # Bash 3.2 treats an empty array as unset under nounset.
+    set -- ${args[@]+"${args[@]}"}
     ;;
 esac
 "cmd_${COMMAND//-/_}" "$@"

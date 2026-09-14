@@ -2,6 +2,7 @@
 """Exercise handoff helper output and argument validation in isolated stores.
 
 Run from the repo root: python3 tools/test_handoff.py
+Set HANDOFF_TEST_BASH to test a specific Bash executable.
 """
 
 from __future__ import annotations
@@ -13,6 +14,7 @@ import unittest
 from pathlib import Path
 
 ENTRY = Path(__file__).resolve().parents[1] / "handoff/scripts/handoff.sh"
+TEST_BASH = os.environ.get("HANDOFF_TEST_BASH", "bash")
 
 
 class HandoffTest(unittest.TestCase):
@@ -39,7 +41,7 @@ class HandoffTest(unittest.TestCase):
 
     def cli(self, *args):
         return subprocess.run(
-            ["bash", str(ENTRY), *map(str, args)],
+            [TEST_BASH, str(ENTRY), *map(str, args)],
             cwd=self.work,
             env=self.env,
             capture_output=True,
