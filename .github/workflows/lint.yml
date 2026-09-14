@@ -19,8 +19,8 @@ jobs:
       - name: Compile check the tools directory
         run: python3 -m compileall -q tools/
 
-      - name: Run the linter test suite
-        run: python3 tools/test_skill_lint.py
+      - name: Run the linter and helper script test suites
+        run: make test
 
       - name: Run the skill linter against the baseline
         run: python3 tools/lint_skills.py --baseline tools/lint_baseline.json
