@@ -56,3 +56,9 @@ Then the body, in this order. Cut a section that would be empty, never pad one.
 ## Peers
 
 `~/handoffs/peers` holds one ssh host per line, resolved through `~/.ssh/config`. Sync is symmetric per peer, push then pull, so any machine that can reach any other machine keeps both current. A machine that cannot ssh out still receives whatever its peers push. Run the resolved script with `peers` to see who answers.
+
+## Helper output
+
+Run the resolved script with `--help`, or `<command> --help`, for usage. `latest` reports `status: found`, `project`, and `path`. An empty result reports `status: empty` and `0 open handoffs`, with exit 0. Add `--branch <branch>` to filter and include the branch in the report. Add `--all` to list every match, newest first by modification time. Add `--path` for shell callers that need paths only. In that mode, no match produces empty stdout and exit 1.
+
+Invalid arguments exit 2 before any store changes or peer calls. Runtime failures exit 1. Sync retains its best-effort behavior and exits 2 if any peer is unreachable, including sync after `mark-resumed`.
