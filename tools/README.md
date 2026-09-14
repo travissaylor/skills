@@ -23,7 +23,7 @@ Every target is a one line wrapper. The underlying command is `python3 tools/lin
 
 ## What it scans
 
-Skills are every immediate subdirectory of the repo root that holds a `SKILL.md`, skipping dotted directories and `tools`. Prose checks run over every markdown file in the repo, skipping dotted directories, `tools`, and `node_modules`. That is 7 files today: the root `README.md` and six `SKILL.md` files.
+Skills are every immediate subdirectory of the repo root that holds a `SKILL.md`, skipping dotted directories and `tools`. Prose checks run over every markdown file in the repo, skipping dotted directories, `tools`, and `node_modules`. That is 10 files today: the root `README.md` and nine `SKILL.md` files.
 
 Prose checks run on a masked view of each file. Fenced code blocks, blockquotes, inline code spans, and URLs are blanked out first, with line numbers and character offsets preserved. A semicolon inside a code sample is not a finding.
 
@@ -157,7 +157,7 @@ Two defects in the acceptance corpus cannot be caught by static analysis. They a
 
 | Gap | The defect | What would catch it |
 |---|---|---|
-| `defect-5-routing-bypass` | `recall/SKILL.md:33` sends the agent straight to `unslop`, while `prose` states that it is the entry point and the deep passes must not be loaded ahead of it. | The planned `routes-to` frontmatter key, which turns the routing claim into data the linter can check both ways. |
+| `defect-5-routing-bypass` | `recall/SKILL.md:35` sends the agent straight to `unslop`, while `prose` states that it is the entry point and the deep passes must not be loaded ahead of it. | The planned `routes-to` frontmatter key, which turns the routing claim into data the linter can check both ways. |
 | `defect-6-cross-skill-self-modification` | `technical-writing/SKILL.md:21` instructs the agent to edit another skill's rule list. That is unbounded cross-skill self-modification with no guard on what may be written. | A policy check over write targets, driven by a declared per-skill write scope in frontmatter. |
 
 Each entry states the path, the anchor text, why the linter cannot reach it, and what would. The test suite asserts the anchors still appear at those paths, so a gap entry cannot rot into a stale claim about a file that changed.
