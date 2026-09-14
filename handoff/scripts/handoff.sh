@@ -9,7 +9,8 @@
 # Usage:
 #   handoff.sh dir                        print ~/handoffs/<project>, creating it
 #   handoff.sh new <slug>                 print the path for a new document
-#   handoff.sh latest [--branch B] [--all] print newest open document for this project
+#   handoff.sh latest [--branch B] [--all] [--path]
+#                                        describe newest open document for this project
 #   handoff.sh mark-resumed <file>        set status to resumed, then sync
 #   handoff.sh sync                       push and pull with every peer, best effort
 #   handoff.sh peers                      list peers and whether each answers
@@ -27,6 +28,37 @@ SSH_OPTS="-o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-n
 
 die() { echo "handoff.sh: $*" >&2; exit 1; }
 
+usage() {
+  case "${1:-}" in
+    dir) echo "Usage: handoff.sh dir"; echo "Print the project store directory, creating it if needed." ;;
+    new) echo "Usage: handoff.sh new <slug>"; echo "Print an unused document path. The document is not created." ;;
+    latest)
+      echo "Usage: handoff.sh latest [--branch <branch>] [--all] [--path]"
+      echo "Report status, project, and matching path. Empty results say 0 open handoffs."
+      echo "--branch filters by branch. --all returns every match, newest first by mtime."
+      echo "--path prints paths only, with empty stdout and exit 1 when none match."
+      ;;
+    mark-resumed) echo "Usage: handoff.sh mark-resumed <file>"; echo "Set status to resumed, stamp this host and time, then sync." ;;
+    sync) echo "Usage: handoff.sh sync"; echo "Push and pull with every peer, best effort." ;;
+    peers) echo "Usage: handoff.sh peers"; echo "List peers and whether each answers." ;;
+    *)
+      echo "Usage: handoff.sh <command> [arguments]"
+      echo "Commands: dir, new, latest, mark-resumed, sync, peers"
+      echo "Run handoff.sh <command> --help for arguments and output."
+      echo "HANDOFF_ROOT sets the store (default: ~/handoffs). HANDOFF_PROJECT overrides the project."
+      echo "Peers come from the store's peers file and space-separated HANDOFF_PEERS."
+      ;;
+  esac
+  echo "Exit codes: 0 success, 1 runtime failure or empty --path result, 2 invalid arguments."
+  echo "Sync also exits 2 when any peer is unreachable, including after mark-resumed."
+}
+
+usage_error() {
+  echo "handoff.sh: $*" >&2
+  echo "Run handoff.sh${COMMAND:+ $COMMAND} --help for usage." >&2
+  exit 2
+}
+
 project_name() {
   if [ -n "${HANDOFF_PROJECT:-}" ]; then echo "$HANDOFF_PROJECT"; return; fi
   local common top
@@ -41,9 +73,9 @@ project_name() {
 }
 
 ensure_root() {
-  mkdir -p "$ROOT"
+  mkdir -p "$ROOT" || die "cannot create store: $ROOT"
   if [ ! -f "$PEERS_FILE" ]; then
-    cat > "$PEERS_FILE" <<'PEERS'
+    cat > "$PEERS_FILE" <<'PEERS' || die "cannot create peers file: $PEERS_FILE"
 # One ssh host per line. handoff.sh sync pushes to and pulls from each one.
 # Hosts come from ~/.ssh/config, so "travbox" here means "Host travbox" there.
 PEERS
@@ -51,9 +83,9 @@ PEERS
 }
 
 project_dir() {
-  ensure_root
+  ensure_root || return 1
   local dir="$ROOT/$(project_name)"
-  mkdir -p "$dir"
+  mkdir -p "$dir" || die "cannot create project directory: $dir"
   echo "$dir"
 }
 
@@ -68,9 +100,9 @@ cmd_dir() { project_dir; }
 
 cmd_new() {
   local slug="${1:-}"
-  [ -n "$slug" ] || die "new needs a slug"
   slug=$(echo "$slug" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//')
-  local dir; dir=$(project_dir)
+  [ -n "$slug" ] || usage_error "new: slug must contain a letter or digit"
+  local dir; dir=$(project_dir) || return 1
   # Date and minute keep names unique across machines that sync later.
   local path="$dir/$(date +%Y-%m-%d-%H%M)-$slug.md"
   while [ -e "$path" ]; do path="${path%.md}-$(date +%S%N | cut -c1-4).md"; sleep 0.01; done
@@ -78,44 +110,84 @@ cmd_new() {
 }
 
 fm_value() { # fm_value <file> <key>
-  sed -n '1,/^---$/p' "$1" | sed -n '2,$p' | grep -m1 -E "^$2:" | sed -E "s/^$2:[[:space:]]*//"
+  # Read simple scalar fields only from a complete leading frontmatter block.
+  awk -v key="$2" '
+    {sub(/\r$/, "")}
+    NR==1 {if ($0!="---") exit; next}
+    $0=="---" {if (found) print value; exit}
+    !found && index($0, key ":")==1 {
+      value=substr($0, length(key)+2)
+      sub(/^[[:space:]]*/, "", value)
+      sub(/[[:space:]]*$/, "", value)
+      quote=substr(value, 1, 1)
+      if ((quote=="\"" || quote==sprintf("%c", 39)) &&
+          substr(value, length(value), 1)==quote)
+        value=substr(value, 2, length(value)-2)
+      found=1
+    }
+  ' "$1"
 }
 
 cmd_latest() {
-  local branch="" all=0
+  local branch="" all=0 path_only=0
   while [ $# -gt 0 ]; do
     case "$1" in
       --branch) branch="$2"; shift 2 ;;
       --all) all=1; shift ;;
-      *) die "latest: unknown flag $1" ;;
+      --path) path_only=1; shift ;;
     esac
   done
-  local dir; dir=$(project_dir)
-  local found=0 f name
+  local dir; dir=$(project_dir) || return 1
+  local f status file_branch listing=""
+  local -a candidates paths=()
+  [ -r "$dir" ] && [ -x "$dir" ] || die "cannot read project directory: $dir"
+  shopt -s nullglob
+  candidates=("$dir"/*.md)
+  if [ "${#candidates[@]}" -gt 0 ]; then
+    listing=$(ls -td -- "${candidates[@]}") || die "cannot list handoffs in: $dir"
+  fi
   # ls -t: newest first by modification time, which survives rsync -a.
   # Read line by line so a path with spaces stays one path.
-  while IFS= read -r name; do
-    [ -n "$name" ] || continue
-    f="$dir/$name"
-    [ "$(fm_value "$f" status)" = "open" ] || continue
-    if [ -n "$branch" ] && [ "$(fm_value "$f" branch)" != "$branch" ]; then continue; fi
-    echo "$f"; found=1
+  while IFS= read -r f; do
+    [ -n "$f" ] && [ -f "$f" ] || continue
+    status=$(fm_value "$f" status) || die "cannot read handoff: $f"
+    [ "$status" = "open" ] || continue
+    if [ -n "$branch" ]; then
+      file_branch=$(fm_value "$f" branch) || die "cannot read handoff: $f"
+      [ "$file_branch" = "$branch" ] || continue
+    fi
+    paths+=("$f")
     [ "$all" = 1 ] || break
-  done < <(cd "$dir" && ls -t -- *.md 2>/dev/null)
-  [ "$found" = 1 ]
+  done <<< "$listing"
+  if [ "$path_only" = 1 ]; then
+    [ "${#paths[@]}" -gt 0 ] || return 1
+    printf '%s\n' "${paths[@]}"
+  elif [ "${#paths[@]}" -gt 0 ]; then
+    printf 'status: found\nproject: %s\n' "$(project_name)"
+    [ -z "$branch" ] || printf 'branch: %s\n' "$branch"
+    printf 'path: %s\n' "${paths[@]}"
+  else
+    printf 'status: empty\nproject: %s\n' "$(project_name)"
+    [ -z "$branch" ] || printf 'branch: %s\n' "$branch"
+    printf 'message: 0 open handoffs\n'
+  fi
 }
 
 cmd_mark_resumed() {
   local f="${1:-}"
   [ -f "$f" ] || die "mark-resumed needs an existing file"
   local stamp; stamp="$(hostname -s) $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-  local tmp; tmp=$(mktemp)
+  local tmp; tmp=$(mktemp) || die "cannot create temporary file"
   awk -v stamp="$stamp" '
+    {sub(/\r$/, "")}
     NR==1 && $0=="---" {infm=1; print; next}
     infm && $0=="---" {print "resumed_on: " stamp; infm=0; print; next}
     infm && /^status:/ {print "status: resumed"; next}
     {print}
-  ' "$f" > "$tmp" && mv "$tmp" "$f"
+  ' "$f" > "$tmp" && mv "$tmp" "$f" || {
+    rm -f "$tmp"
+    die "cannot mark handoff resumed: $f"
+  }
   echo "marked resumed: $f"
   cmd_sync
 }
@@ -154,12 +226,38 @@ cmd_peers() {
   done
 }
 
-case "${1:-}" in
-  dir) shift; cmd_dir "$@" ;;
-  new) shift; cmd_new "$@" ;;
-  latest) shift; cmd_latest "$@" ;;
-  mark-resumed) shift; cmd_mark_resumed "$@" ;;
-  sync) shift; cmd_sync "$@" ;;
-  peers) shift; cmd_peers "$@" ;;
-  *) sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
+COMMAND="${1:-}"
+case "$COMMAND" in
+  ""|--help|-h)
+    COMMAND=""
+    [ $# -le 1 ] || usage_error "unexpected arguments after help"
+    usage; exit 0 ;;
+  dir|new|latest|mark-resumed|sync|peers) shift ;;
+  *) COMMAND=""; usage_error "unknown command: $1" ;;
 esac
+if [ $# = 1 ] && { [ "$1" = --help ] || [ "$1" = -h ]; }; then
+  usage "$COMMAND"; exit 0
+fi
+# Validate the complete invocation before creating files or contacting peers.
+case "$COMMAND" in
+  dir|sync|peers) [ $# = 0 ] || usage_error "$COMMAND: unexpected argument: $1" ;;
+  new|mark-resumed)
+    [ $# = 1 ] || usage_error "$COMMAND needs exactly one argument"
+    [ -n "$1" ] && [[ "$1" != -* ]] || usage_error "$COMMAND: expected a value, got: $1"
+    ;;
+  latest)
+    args=("$@")
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        --branch)
+          [ $# -ge 2 ] && [ -n "$2" ] && [[ "$2" != -* ]] || usage_error "latest: --branch needs a branch name"
+          shift 2 ;;
+        --all|--path) shift ;;
+        *) usage_error "latest: unexpected argument: $1" ;;
+      esac
+    done
+    # Bash 3.2 treats an empty array as unset under nounset.
+    set -- ${args[@]+"${args[@]}"}
+    ;;
+esac
+"cmd_${COMMAND//-/_}" "$@"
