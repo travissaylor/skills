@@ -30,11 +30,27 @@ A collection of agent skills for Claude Code.
 
 ## Context
 
-- **recall**: Reconstruct recent working context from chat history, live state, and the shared record (tickets, docs, memory), then hand back a tight current-state brief.
+Three skills that carry a session across agents (Claude Code, Codex, Antigravity) and machines. Handoff documents live in `~/handoffs/<project>/` and sync between machines over rsync, so the same file is there whichever agent picks it up. Install all three together.
+
+- **handoff**: Write a handoff document into the shared store, commit and push the branch so the tree travels too, and sync to peer machines. Ships the store script the other two use.
+
+  ```
+  npx skills@latest add travissaylor/skills/handoff
+  ```
+
+- **resume**: Sync the store, take the newest open handoff for this project, verify the tree matches it, mark it resumed, and start. The fast path after a handoff.
+
+  ```
+  npx skills@latest add travissaylor/skills/resume
+  ```
+
+- **recall**: Reconstruct recent working context from Claude Code and Codex chat history, live state, and the shared record (tickets, docs, memory), then hand back a tight current-state brief. Checks the handoff store first. The fallback when no handoff exists.
 
   ```
   npx skills@latest add travissaylor/skills/recall
   ```
+
+To sync between machines, list each peer's ssh host name in `~/handoffs/peers`, one per line. The first run of the store script creates the file.
 
 ## Execution
 
@@ -49,6 +65,10 @@ A collection of agent skills for Claude Code.
   ```
   npx skills@latest add travissaylor/skills/conductor-multi
   ```
+
+## Installing from a clone
+
+`make install` symlinks every skill in this repo into `~/.claude/skills`, `~/.codex/skills`, `~/.agents/skills`, and `~/.gemini/skills`, so each agent loads the same versioned copy. Anything already at a target path is moved aside with a `.bak-<timestamp>` suffix, never deleted. Run it on each machine after cloning or pulling a skill that was added since.
 
 ## Skill linter
 

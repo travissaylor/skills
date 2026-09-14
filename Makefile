@@ -1,4 +1,4 @@
-.PHONY: check lint lint-ci test baseline install-hooks
+.PHONY: check lint lint-ci test baseline install-hooks install
 
 .DEFAULT_GOAL := check
 
@@ -22,6 +22,10 @@ baseline:
 install-hooks:
 	git config core.hooksPath .githooks
 	chmod +x .githooks/pre-commit
+
+# Symlinks every skill into the Claude, Codex, agents, and Gemini skill directories.
+install:
+	tools/install_skills.sh
 
 # Compile check, then test, then the baseline-filtered lint. Run before pushing.
 check:

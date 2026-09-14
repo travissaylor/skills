@@ -18,6 +18,7 @@ KNOWN_FM_KEYS = {
     "name",
     "description",
     "disable-model-invocation",
+    "argument-hint",
     "allowed-tools",
     "license",
     "metadata",
