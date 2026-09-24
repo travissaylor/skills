@@ -84,6 +84,8 @@ Claude units get the same content as the Agent prompt, plus the usual instructio
 
 Resolve `<skill-dir>` from the path of this SKILL.md. Defaults: 10 minute stall limit (Codex only, based on event-stream activity) and a 60 minute wall-clock ceiling. Override with `--stall` and `--max` for big units.
 
+Run `<skill-dir>/scripts/run-unit.sh --help` for options and setup requirements. Invalid arguments or missing prerequisites exit 2 before execution. A completed executor with a JSON object report exits 0. Execution failures exit 1. The completion summary includes the outcome, elapsed seconds, report, metadata, and stderr paths. Failures include a reason capped at 240 characters. Full backend errors remain in the metadata and stderr artifacts.
+
 The script exits when the executor finishes, and Claude Code notifies you of the background completion. Do not poll. While waiting, adjudicate any Claude units that have already reported.
 
 Under the hood, Codex runs `codex exec` with the brief on stdin, `-C <repo>`, `-s workspace-write`, `--json`, and `--output-schema`. Agy runs `agy --print` with `--add-dir <repo>`, `--mode accept-edits`, `--output-format json`, and `--json-schema`. Do not launch either CLI by hand. The flags are the product of testing, and the script also captures thread ids for retries.
@@ -94,7 +96,7 @@ You grade every unit yourself. Be skeptical. A "done" claim with a vague file li
 
 For each unit in the wave:
 
-1. **Read the report.** External units: `<unit>.meta.json` first (`outcome` is `completed`, `failed`, `stalled`, or `timeout`), then `<unit>.result.json`. A missing result with outcome `failed` means the CLI errored. Read the tail of `<unit>.stderr` and treat it as a retry with the error quoted, unless it is an auth or quota failure, in which case reroute the unit to another backend.
+1. **Read the report.** External units: use the completion summary to locate `<unit>.meta.json` and `<unit>.result.json`. Metadata `outcome` is `completed`, `failed`, `stalled`, or `timeout`. Completion describes the executor run, so check the report's `status` and acceptance items before grading the unit. On failure, read the metadata error and the tail of `<unit>.stderr`. A missing or malformed report also counts as a failure. Treat failures as retries with the error quoted, unless auth or quota failed, in which case reroute the unit to another backend.
 2. **Verify the footprint.** `git status --porcelain` plus `git diff --stat -- <owned files>`. The changed files must match `files_changed`, and nothing outside the unit's ownership may be touched. Out-of-scope edits: restore stray files with `git checkout -- <files>`, delete stray untracked files, and note it in the retry. Agy units get this check every time. It has no sandbox fence.
 3. **Spot-read the diff** of load-bearing files (`git diff -- <file>`, and read new files directly). Check the acceptance items gates cannot verify: intent, constraint adherence, semantic drift. Use `--stat` first and read full diffs only where needed.
 4. **Verdict:**

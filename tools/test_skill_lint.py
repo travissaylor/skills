@@ -860,7 +860,7 @@ class DiscoveryTest(unittest.TestCase):
 
 
 class KnownGapsTest(unittest.TestCase):
-    """Two corpus defects are not statically checkable here.
+    """Remaining corpus defects are not statically checkable here.
 
     Faking a test for them would be worse than admitting the gap. The manifest
     records each one, and this test keeps its locations honest so the gaps stay
@@ -874,7 +874,6 @@ class KnownGapsTest(unittest.TestCase):
         self.assertEqual(
             {gap["id"] for gap in gaps},
             {
-                "defect-5-routing-bypass",
                 "defect-6-cross-skill-self-modification",
             },
         )

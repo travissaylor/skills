@@ -10,7 +10,7 @@ The linter is a static check. It reads files, matches patterns, and prints findi
 |---|---|
 | `make lint` | Prints the full backlog, no baseline filtering. Use it to see the real state. |
 | `make lint-ci` | Prints only findings beyond the baseline. This is the commit gate and the CI gate. |
-| `make test` | Runs the linter test suite, 58 tests. |
+| `make test` | Runs the linter and helper script test suites. |
 | `make baseline` | Rewrites `tools/lint_baseline.json` from current findings. Run it after a deliberate fix. |
 | `make install-hooks` | Points `core.hooksPath` at `.githooks` and marks the pre-commit hook runnable. |
 | `make check` | Compile check, then `make test`, then `make lint-ci`. Run it before pushing. |
@@ -153,11 +153,10 @@ That list is the word-list codes and nothing else. The punctuation codes SK201 t
 
 ## Known gaps
 
-Two defects in the acceptance corpus cannot be caught by static analysis. They are recorded in `tools/fixtures/known_gaps.json` and held under test in `KnownGapsTest`, so the gap is visible instead of forgotten:
+One remaining defect in the acceptance corpus cannot be caught by static analysis. It is recorded in `tools/fixtures/known_gaps.json` and held under test in `KnownGapsTest`:
 
 | Gap | The defect | What would catch it |
 |---|---|---|
-| `defect-5-routing-bypass` | `recall/SKILL.md:35` sends the agent straight to `unslop`, while `prose` states that it is the entry point and the deep passes must not be loaded ahead of it. | The planned `routes-to` frontmatter key, which turns the routing claim into data the linter can check both ways. |
 | `defect-6-cross-skill-self-modification` | `technical-writing/SKILL.md:21` instructs the agent to edit another skill's rule list. That is unbounded cross-skill self-modification with no guard on what may be written. | A policy check over write targets, driven by a declared per-skill write scope in frontmatter. |
 
 Each entry states the path, the anchor text, why the linter cannot reach it, and what would. The test suite asserts the anchors still appear at those paths, so a gap entry cannot rot into a stale claim about a file that changed.
@@ -179,7 +178,7 @@ The tradeoff is real. There is no YAML parser, so `core.parse_frontmatter` handl
     tools/skill_lint/cli.py           flags, output formatting, baseline, exit codes
     tools/test_skill_lint.py          the test suite
     tools/fixtures/cases/             per-check fixture skills
-    tools/fixtures/known_gaps.json    the two non-checkable defects
+    tools/fixtures/known_gaps.json    remaining non-checkable defects
     tools/lint_baseline.json          recorded counts of existing findings
 
 Check modules return `list[Finding]`. They never print, never exit, and never write files. All output and all exit-code logic lives in `cli.py`.
