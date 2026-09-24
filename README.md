@@ -30,21 +30,21 @@ A collection of agent skills for Claude Code.
 
 ## Context
 
-Three skills that carry a session across agents (Claude Code, Codex, Antigravity) and machines. Handoff documents live in `~/handoffs/<project>/` and sync between machines over rsync, so the same file is there whichever agent picks it up. Install all three together.
+Three skills that carry a session across agents (Claude Code, Codex, Antigravity) and machines. Handoff documents live in `~/handoffs/<project>/` and sync between machines over rsync, so the same file is there whichever agent picks it up. The writing side never needs to know where the work goes next. The reading side, `pickup` or `recall`, works the same in any agent on any peer. Install all three together.
 
-- **handoff**: Write a handoff document into the shared store, commit and push the branch so the tree travels too, and sync to peer machines. Ships the store script the other two use.
+- **handoff**: Write a handoff document into the shared store, commit and push the branch so the tree travels too, and sync to peer machines. Written for any agent on any machine, so it takes no destination. Ships the store script the other two use.
 
   ```
   npx skills@latest add travissaylor/skills/handoff
   ```
 
-- **resume**: Sync the store, take the newest open handoff for this project, verify the tree matches it, mark it resumed, and start. The fast path after a handoff.
+- **pickup**: Sync the store, take the newest open handoff for this project, verify the tree matches it, mark it taken, and start. The fast path after a handoff, in whichever agent and on whichever machine the next session opens. Named `pickup` because `/resume` is already a built-in command in Claude Code.
 
   ```
-  npx skills@latest add travissaylor/skills/resume
+  npx skills@latest add travissaylor/skills/pickup
   ```
 
-- **recall**: Reconstruct recent working context from Claude Code and Codex chat history, live state, and the shared record (tickets, docs, memory), then hand back a tight current-state brief. Checks the handoff store first. The fallback when no handoff exists.
+- **recall**: Reconstruct recent working context from Claude Code, Codex, and Antigravity chat history, live state, and the shared record (tickets, docs, memory), then hand back a tight current-state brief. Checks the handoff store first. The fallback when no handoff exists.
 
   ```
   npx skills@latest add travissaylor/skills/recall

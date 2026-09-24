@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# handoff.sh: the shared store behind the handoff, resume, and recall skills.
+# handoff.sh: the shared store behind the handoff, pickup, and recall skills.
 #
 # Handoff documents live in ~/handoffs/<project>/<date>-<slug>.md on every
 # machine. This script names the directory, finds the newest open document,
