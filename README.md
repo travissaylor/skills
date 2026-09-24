@@ -66,6 +66,14 @@ To sync between machines, list each peer's ssh host name in `~/handoffs/peers`, 
   npx skills@latest add travissaylor/skills/conductor-multi
   ```
 
+## Maintenance
+
+- **session-audit**: Audit Claude Code session history for repeated manual work, skills that misfire, tool failures, and token waste. A deterministic distiller does all counting, Sonnet miners classify and explain, and every finding is quote-verified and checked on the live machine. Local state (ledger, fixes, custom metrics) lives in `~/.claude/session-audit/`, outside the skill.
+
+  ```
+  npx skills@latest add travissaylor/skills/session-audit
+  ```
+
 ## Installing from a clone
 
 `make install` symlinks every skill in this repo into `~/.claude/skills`, `~/.codex/skills`, `~/.agents/skills`, and `~/.gemini/skills`, so each agent loads the same versioned copy. Anything already at a target path is moved aside with a `.bak-<timestamp>` suffix, never deleted. Run it on each machine after cloning or pulling a skill that was added since.

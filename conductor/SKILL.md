@@ -19,6 +19,8 @@ If the user hasn't stated a goal, ask. Do not guess.
 
 Orient first: read the project's docs if you haven't already this session (CLAUDE.md, README), survey the code the task touches, and skim existing tests to know what test slices exist.
 
+While orienting, build the **context pack**: for every file the task touches that is over ~300 lines, or that two or more units will read, keep the exact excerpts you read (symbol name + ±40 lines, with line numbers) in a scratch file `context-pack.md`. Executors start from zero and will otherwise each `cat` the same 1-3k-line service file. In one run, six executors each read the same service file in full. The pack is what stops that.
+
 Detect the **gates** from the repo manifest, unless the user supplied them. Gates are the deterministic shell commands that must pass before work is committed: build, lint, typecheck, and test scripts, preferring a combined check script and skipping long e2e or integration suites. Gates are YOUR job to run, once per wave. Executors never run the full suite.
 
 Derive a SHORT **constraints** list stamped into every executor prompt: the master goal itself, hard rules from the repo docs, and "match surrounding file style and conventions". Include any user-supplied constraints verbatim.
@@ -33,6 +35,7 @@ Break the task into **units** (coarse-grained, roughly 3–7). Each unit has:
 - `dependsOn`: unit ids that must land first (keep the graph shallow)
 - `complexity`: `normal` (sonnet) or `complex` (opus, only if it genuinely needs a stronger model)
 - `scoped checks`: the fastest deterministic commands relevant to that unit alone (a targeted test file, a cheap typecheck). Optional. Keep them fast.
+- `context`: which context-pack excerpts this unit needs (by symbol). Every unit that touches a long file names at least one.
 
 **Hard rule:** units running in the same wave MUST have disjoint owned-file sets. If two units need the same file, sequence them with `dependsOn` or merge them into one unit. A scoping mistake here is the failure mode of this whole architecture, so spend planning effort getting ownership right.
 
@@ -46,11 +49,14 @@ A wave is every remaining unit whose `dependsOn` are all landed or dropped.
 
 Dispatch the wave in **ONE message with one Agent call per unit** (`subagent_type: general-purpose`, `model` per complexity). Same-message calls run concurrently, and sequential messages serialize. This is the whole point.
 
+**Waiting on the wave:** do nothing until each executor's completion notification arrives. Never `sleep`, never `until … pgrep` loops, never `cat` a task output file. If you need a machine condition (port, file, process), use `Monitor` with a timeout.
+
 Each executor starts with zero context. The prompt must be self-contained:
 
 - The overall task (context only, build ONLY your unit).
 - The unit: title, scope, the exact owned-file list, the acceptance checklist.
 - The constraints list, verbatim.
+- **The unit's context-pack excerpts, inline** (paths, line numbers, the code you already read), ≤ ~150 lines per unit. Then the rule: "Trust these excerpts. For anything else, `grep -n` for the symbol and read ±40 lines. Never read a file over 300 lines in full."
 - Retry notes from a previous attempt, if any (see Phase 3).
 - Rules, verbatim:
   - "Edit ONLY the files in your owned-file list. Other agents own other files. Touching theirs corrupts the run."

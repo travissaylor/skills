@@ -23,7 +23,7 @@ Every target is a one line wrapper. The underlying command is `python3 tools/lin
 
 ## What it scans
 
-Skills are every immediate subdirectory of the repo root that holds a `SKILL.md`, skipping dotted directories and `tools`. Prose checks run over every markdown file in the repo, skipping dotted directories, `tools`, and `node_modules`. That is 10 files today: the root `README.md` and nine `SKILL.md` files.
+Skills are every immediate subdirectory of the repo root that holds a `SKILL.md`, skipping dotted directories and `tools`. Prose checks run over every markdown file in the repo, skipping dotted directories, `tools`, and `node_modules`. That is 13 files today: the root `README.md`, ten `SKILL.md` files, and the two `session-audit` reference files.
 
 Prose checks run on a masked view of each file. Fenced code blocks, blockquotes, inline code spans, and URLs are blanked out first, with line numbers and character offsets preserved. A semicolon inside a code sample is not a finding.
 
@@ -103,7 +103,7 @@ Codes are frozen. A new check gets a new code, and a retired check leaves its nu
 
 ## The baseline
 
-The backlog is cleared. `make lint` reports 0 errors and 0 warnings across all 7 files, and `tools/lint_baseline.json` records zero findings, so the gate blocks the first new defect anywhere in the repo. After any future deliberate suppression-worthy state, the same mechanism applies: record it, then burn it down.
+The backlog is cleared. `make lint` reports 0 errors and 0 warnings across all 13 files, and `tools/lint_baseline.json` records zero findings, so the gate blocks the first new defect anywhere in the repo. After any future deliberate suppression-worthy state, the same mechanism applies: record it, then burn it down.
 
 The mechanism stays because it is what lets a linter land on a repo that already has a backlog. Without a baseline the pre-commit hook blocks every commit from the day it is installed. A hook that always fails gets deleted within a week, and then nothing is checked at all. The baseline records what is already broken so the gate only fires on what a commit adds.
 
