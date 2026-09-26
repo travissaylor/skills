@@ -27,7 +27,7 @@ ROOT = Path(args.root) if args.root else Path(HOME) / ".claude/projects"
 OUT = Path(args.out); OUT.mkdir(parents=True, exist_ok=True)
 SINCE, UNTIL = args.since or "", args.until or "9999"
 BIG = 15_000  # chars; a tool result this size is a token-sink candidate
-KNOWN_TYPES = {"user", "assistant", "system", "attachment", "summary", "mode", "last-prompt", "atis-latch",
+KNOWN_TYPES = {"user", "assistant", "system", "attachment", "summary", "mode", "last-prompt", "atis-latch", "bridge-session", "fork-context-ref",
                "file-history-snapshot", "file-history-delta", "queue-operation", "cost-state", "custom-title", "ai-title",
                "tag", "agent-name", "permission-mode", "pr-link", "frame-link", "artifact-comment-monitor",
                "artifact-autoreact-ledger"}
