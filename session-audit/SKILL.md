@@ -121,6 +121,8 @@ Present "Did the last fixes hold" and "Do today" first, then stop. The user answ
 | File | Use |
 |---|---|
 | `scripts/mine-transcripts.py` | Execute. Writes `stats.md`, `signals.json`, `digest-NN.md`, and `episodes-NN.md`. `--help` for flags. |
+| `scripts/mine-codex.py` | Execute when Codex CLI rollouts exist. Writes `codex-stats.md`, `codex-signals.json`, and `digest-codex-NN.md`. |
+| `scripts/mine-agy.py` | Execute when Antigravity CLI conversations exist. Writes `agy-stats.md`, `agy-signals.json`, and `digest-agy-NN.md`. |
 | `scripts/verify-findings.py` | Execute after the miners. Exits 1 if any finding is unsupported. |
 | `scripts/test_mine_transcripts.py` | Execute before each run and after editing either script. |
 | `references/agent-brief.md` | Miners read it. You don't need to. |

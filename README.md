@@ -74,6 +74,14 @@ To sync between machines, list each peer's ssh host name in `~/handoffs/peers`, 
   npx skills@latest add travissaylor/skills/session-audit
   ```
 
+## Tracking
+
+- **revlog-standup**: Daily standup loop for one project's Shape Up tracker in Notion. Gathers evidence since the last check-in (git, PRs, prod deploy sha, Jira, Slack, Notion meetings, Claude sessions), proposes hill chart moves and a Daily entry, then drafts the Slack standup. Every write waits for a confirm word, and `--dry-run` writes nothing. The identifiers in `references/ids.md` belong to one project, so treat the skill as a template for your own tracker.
+
+  ```
+  npx skills@latest add travissaylor/skills/revlog-standup
+  ```
+
 ## Installing from a clone
 
 `make install` symlinks every skill in this repo into `~/.claude/skills`, `~/.codex/skills`, `~/.agents/skills`, and `~/.gemini/skills`, so each agent loads the same versioned copy. Anything already at a target path is moved aside with a `.bak-<timestamp>` suffix, never deleted. Run it on each machine after cloning or pulling a skill that was added since.
