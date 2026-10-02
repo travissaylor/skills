@@ -95,7 +95,7 @@ Codes are frozen. A new check gets a new code, and a retired check leaves its nu
 | Code | What it catches |
 |---|---|
 | SK206 | A title-case heading. Two or more capitalized non-proper nouns that are not sentence-initial count as evidence. |
-| SK207 | AI vocabulary such as "delve", "crucial", "tapestry". |
+| SK207 | AI vocabulary such as "delve", "crucial", "tapestry". A word that is also a skill name in this repo is skipped where it is an identifier: the `name:` line, `/name`, or `**name**`. |
 | SK210 | A filler phrase such as "in order to" or "it is important to note that". |
 | SK211 | Two or more hedges stacked on one line, such as "could potentially". |
 | SK212 | An abstract metaphor noun such as "substrate", "flywheel", "north star". |
