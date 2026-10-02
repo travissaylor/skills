@@ -74,14 +74,6 @@ To sync between machines, list each peer's ssh host name in `~/handoffs/peers`, 
   npx skills@latest add travissaylor/skills/session-audit
   ```
 
-## Tracking
-
-- **revlog-standup**: Daily standup loop for one project's Shape Up tracker in Notion. Gathers evidence since the last check-in (git, PRs, prod deploy sha, Jira, Slack, Notion meetings, Claude sessions), proposes hill chart moves and a Daily entry, then drafts the Slack standup. Every write waits for a confirm word, and `--dry-run` writes nothing. The identifiers in `references/ids.md` belong to one project, so treat the skill as a template for your own tracker.
-
-  ```
-  npx skills@latest add travissaylor/skills/revlog-standup
-  ```
-
 ## Presenting work
 
 - **showcase**: Build a self-contained HTML artifact with diagrams, screenshots, and short text that presents a body of work to someone who was not in the room. Six shapes (work explainer, option comparison, data model and ecosystem fit, PR companion, demo readout, research report), each with a skeleton, plus diagram rules and a render check at desktop and phone width that catch overlapping or clipped labels before publishing. Written around one person's recurring corrections and one company's systems, so treat the specifics as a template.
