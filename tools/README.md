@@ -23,7 +23,7 @@ Every target is a one line wrapper. The underlying command is `python3 tools/lin
 
 ## What it scans
 
-Skills are every immediate subdirectory of the repo root that holds a `SKILL.md`, skipping dotted directories and `tools`. Prose checks run over every markdown file in the repo, skipping dotted directories, `tools`, and `node_modules`. That is 18 files today: the root `README.md`, eleven `SKILL.md` files, the two `session-audit` reference files, and the four `revlog-standup` reference files.
+Skills are every immediate subdirectory of the repo root that holds a `SKILL.md`, skipping dotted directories and `tools`. Prose checks run over every markdown file in the repo, skipping dotted directories, `tools`, and `node_modules`. That is 19 files today: the root `README.md`, twelve `SKILL.md` files, the two `session-audit` reference files, and the four `revlog-standup` reference files.
 
 Prose checks run on a masked view of each file. Fenced code blocks, blockquotes, inline code spans, and URLs are blanked out first, with line numbers and character offsets preserved. A semicolon inside a code sample is not a finding.
 
@@ -95,7 +95,7 @@ Codes are frozen. A new check gets a new code, and a retired check leaves its nu
 | Code | What it catches |
 |---|---|
 | SK206 | A title-case heading. Two or more capitalized non-proper nouns that are not sentence-initial count as evidence. |
-| SK207 | AI vocabulary such as "delve", "crucial", "tapestry". |
+| SK207 | AI vocabulary such as "delve", "crucial", "tapestry". A word that is also a skill name in this repo is skipped where it is an identifier: the `name:` line, `/name`, or `**name**`. |
 | SK210 | A filler phrase such as "in order to" or "it is important to note that". |
 | SK211 | Two or more hedges stacked on one line, such as "could potentially". |
 | SK212 | An abstract metaphor noun such as "substrate", "flywheel", "north star". |
@@ -103,7 +103,7 @@ Codes are frozen. A new check gets a new code, and a retired check leaves its nu
 
 ## The baseline
 
-The backlog is cleared. `make lint` reports 0 errors and 0 warnings across all 18 files, and `tools/lint_baseline.json` records zero findings, so the gate blocks the first new defect anywhere in the repo. After any future deliberate suppression-worthy state, the same mechanism applies: record it, then burn it down.
+The backlog is cleared. `make lint` reports 0 errors and 0 warnings across all 19 files, and `tools/lint_baseline.json` records zero findings, so the gate blocks the first new defect anywhere in the repo. After any future deliberate suppression-worthy state, the same mechanism applies: record it, then burn it down.
 
 The mechanism stays because it is what lets a linter land on a repo that already has a backlog. Without a baseline the pre-commit hook blocks every commit from the day it is installed. A hook that always fails gets deleted within a week, and then nothing is checked at all. The baseline records what is already broken so the gate only fires on what a commit adds.
 

@@ -188,7 +188,7 @@ def _run(args) -> int:
             skills, root, max_words=args.max_words, check_installed=args.check_installed
         )
     )
-    findings.extend(checks_prose.run(md_paths, root))
+    findings.extend(checks_prose.run(md_paths, root, {s.name for s in skills}))
 
     findings = core.apply_suppressions(findings, _text_by_path(md_paths, root))
 

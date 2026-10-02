@@ -235,8 +235,20 @@ def _check_emoji(rel_path, line_no, line, out):
                                 "decorative emoji %s in a %s, remove it" % (ch, where)))
 
 
-def _check_word_lists(rel_path, line_no, line, out):
+def _is_skill_name_use(line, m, skill_names):
+    """A skill's own name in `name:`, `/name`, or `**name**` is an identifier, not prose."""
+    if m.group(0).lower() not in skill_names:
+        return False
+    before, after = line[:m.start()], line[m.end():]
+    return (before.endswith("/")
+            or (before.endswith("**") and after.startswith("**"))
+            or re.fullmatch(r"name:\s*", before) is not None)
+
+
+def _check_word_lists(rel_path, line_no, line, out, skill_names=frozenset()):
     for m in AI_VOCAB_RE.finditer(line):
+        if _is_skill_name_use(line, m, skill_names):
+            continue
         out.append(_finding("SK207", "warning", rel_path, line_no,
                             '"%s" is AI vocabulary, use a plain word' % m.group(0)))
 
@@ -301,7 +313,7 @@ def _check_title_case(rel_path, line_no, line, out):
 # --- Entry point -----------------------------------------------------------
 
 
-def run(md_paths: list, root: Path) -> list:
+def run(md_paths: list, root: Path, skill_names=frozenset()) -> list:
     """Return prose findings for every markdown path given. No output, no writes."""
     findings = []
     for path in md_paths:
@@ -316,6 +328,6 @@ def run(md_paths: list, root: Path) -> list:
                 continue
             _check_chars(rel_path, i, line, findings)
             _check_emoji(rel_path, i, line, findings)
-            _check_word_lists(rel_path, i, line, findings)
+            _check_word_lists(rel_path, i, line, findings, skill_names)
             _check_title_case(rel_path, i, line, findings)
     return findings

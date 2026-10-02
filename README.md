@@ -82,6 +82,14 @@ To sync between machines, list each peer's ssh host name in `~/handoffs/peers`, 
   npx skills@latest add travissaylor/skills/revlog-standup
   ```
 
+## Presenting work
+
+- **showcase**: Build a self-contained HTML artifact with diagrams, screenshots, and short text that presents a body of work to someone who was not in the room. Six shapes (work explainer, option comparison, data model and ecosystem fit, PR companion, demo readout, research report), each with a skeleton, plus diagram rules and a render check at desktop and phone width that catch overlapping or clipped labels before publishing. Written around one person's recurring corrections and one company's systems, so treat the specifics as a template.
+
+  ```
+  npx skills@latest add travissaylor/skills/showcase
+  ```
+
 ## Installing from a clone
 
 `make install` symlinks every skill in this repo into `~/.claude/skills`, `~/.codex/skills`, `~/.agents/skills`, and `~/.gemini/skills`, so each agent loads the same versioned copy. Anything already at a target path is moved aside with a `.bak-<timestamp>` suffix, never deleted. Run it on each machine after cloning or pulling a skill that was added since.

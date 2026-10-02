@@ -106,7 +106,7 @@ def lint_tree(root, check_installed=False):
     skills = core.discover_skills(root)
     md_paths = core.repo_markdown(root)
     findings = run_structure(skills, root, check_installed=check_installed)
-    findings += list(prose.run(md_paths, root))
+    findings += list(prose.run(md_paths, root, {s.name for s in skills}))
     text_by_path = {
         path.resolve().relative_to(root).as_posix(): path.read_text(encoding="utf-8")
         for path in md_paths
@@ -257,6 +257,10 @@ class SeededDefectTest(unittest.TestCase):
 
     def test_sk207_ai_vocabulary(self):
         self.check("sk207", "SK207", lines={8})
+
+    def test_sk207_skips_own_skill_name_as_identifier(self):
+        # name:, /showcase, and **showcase** are identifiers. Line 10 is prose.
+        self.check("fp_skill_names", "SK207", lines={10})
 
     def test_sk208_decorative_emoji(self):
         self.check("sk208", "SK208", lines={8})
