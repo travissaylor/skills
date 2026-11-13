@@ -30,7 +30,9 @@ BIG = 15_000  # chars; a tool result this size is a token-sink candidate
 KNOWN_TYPES = {"user", "assistant", "system", "attachment", "summary", "mode", "last-prompt", "atis-latch", "bridge-session", "fork-context-ref",
                "file-history-snapshot", "file-history-delta", "queue-operation", "cost-state", "custom-title", "ai-title",
                "tag", "agent-name", "permission-mode", "pr-link", "frame-link", "artifact-comment-monitor",
-               "artifact-autoreact-ledger"}
+               "artifact-autoreact-ledger",
+               # 2.1.32x request-logging records: no usage, tool results, or skill fields
+               "session-owner", "api-request", "api-request-shape", "api-request-blob", "tools-used"}
 GENERIC_TOOLS = {"Read", "Edit", "Write", "MultiEdit", "Grep", "Glob", "ToolSearch", "TodoWrite", "NotebookEdit"}
 TRIVIAL_SHAPES = {"ls", "echo", "pwd", "true", "wc", "head", "tail", "cat", "sed -n", "grep", "sort", "uniq", "awk",
                   "cut", "tr", "xargs", "find", "jq", "python3", "date", "which", "test", "["}
@@ -39,6 +41,9 @@ STEER_RE = re.compile(
     r"not working|isn'?t working|that'?s (not|wrong)|not what i|instead of|i don'?t (want|like|think|see)|"
     r"why (did|is|are|does) (you|it|this|that)|you (missed|forgot|didn'?t|skipped)|revert|undo|i said|"
     r"too (long|verbose|much|wordy)|shorter|wrong|broke|regress)", re.I)
+# user-role messages the person didn't type: compaction summaries, T3 delegated-task results and context handoffs.
+# They become "synthetic" events: shown in the digest, never counted as user turns, steers, or interrupts.
+NOT_TYPED = ("This session is being continued from a previous conversation", "Delegated task node:", "Context handoff (")
 INTERRUPT_RE = re.compile(r"\[Request interrupted by user[^\]]*\]")
 SCRATCH_RE = re.compile(r"/private/tmp/claude-\d+/[^/\s]+/[0-9a-f-]{36}/scratchpad")
 SPLIT_RE = re.compile(r"\s*(?:&&|\|\||;|\|)\s*")
@@ -174,6 +179,7 @@ def parse(path: Path):
                     continue
                 txt = text_of(content).strip()
                 if not txt: continue
+                if r.get("isCompactSummary") or txt.startswith(NOT_TYPED): ev.append(("synthetic", txt, ts)); continue
                 m = re.search(r"<command-name>/?([\w:.-]+)</command-name>", txt)
                 if m: ev.append(("slash", m.group(1), None)); continue
                 if INTERRUPT_RE.search(txt): ev.append(("interrupt", INTERRUPT_RE.search(txt).group(0), None)); continue
@@ -433,6 +439,7 @@ def render(s):
             user_turns += 1
             flag = "[steer?]" if user_turns > 1 and STEER_RE.search(e[1]) else ""
             emit(f"  USER{flag}[{(e[2] or '')[:16]}]: {one_line(e[1], 500)}"); cur_skill = None
+        elif kind == "synthetic": emit(f"  CONTEXT[{(e[2] or '')[:16]}]: {one_line(e[1], 160)}")
     if rep: out.append(f"    (×{rep + 1})")
     for sub in s["subs"]:
         mm = sub["meta"]; tc = C(t["name"] for t in sub["tools"].values())

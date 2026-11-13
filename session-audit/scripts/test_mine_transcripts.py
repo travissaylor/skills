@@ -3,8 +3,13 @@
     python3 test_mine_transcripts.py
 Each assertion pins a bug the first version had or a signal the audit depends on."""
 import re
-import json, subprocess, sys, tempfile
+import json, os, subprocess, sys, tempfile
 from pathlib import Path
+
+# the scripts use the platform default encoding; on Windows (cp1252) they crash on "→". Run everything in UTF-8 mode.
+os.environ["PYTHONUTF8"] = "1"  # unconditional: the miner subprocesses need it even when this run already has -X utf8
+if not sys.flags.utf8_mode:
+    sys.exit(subprocess.run([sys.executable, "-X", "utf8", __file__, *sys.argv[1:]]).returncode)
 
 HERE = Path(__file__).parent
 tmp = Path(tempfile.mkdtemp())
@@ -25,7 +30,10 @@ def result(ts, tid, text, err=False):
 
 
 sess = [
-    user(0, "run the standup"),
+    # compaction summary first: it must not take turn 1
+    user(0, "This session is being continued from a previous conversation that ran out of context. "
+            "Summary: we reverted the wrong file."),
+    user(0, "run the standup instead of the digest"),  # steer wording, but it is the first typed prompt
     # one API response split over three lines: usage must count once
     asst(1, "m1", [dict(type="text", text="Loading the skill.")], skill="standup"),
     asst(1, "m1", [tool("t1", "Bash", command="cd /x && notion-cli query --db 1")], skill="standup"),
@@ -35,13 +43,21 @@ sess = [
     asst(3, "m2", [tool("t3", "Read", file_path="/x/big.ts")], skill="standup"),
     result(4, "t3", "x" * 40_000),
     asst(5, "m3", [dict(type="text", text="Done.")], skill="standup"),
+    # delegated-task result between the skill and the steer: must not break the steer's skill attribution
+    user(6, "Delegated task node:delegated-task:abc123 (Check the fix) [completed]:\nThe fix didn't work, still broken."),
     user(6, "that's not what I asked, the Daily is wrong"),
     asst(7, "m4", [tool("t4", "Agent", subagent_type="Explore", model="opus", description="look", prompt="p")]),
     asst(7, "m4", [tool("t5", "mcp__claude_ai_Notion__notion-fetch", id="p", include_transcript=True)]),
     result(8, "t5", "short"),
     result(8, "t4", "ok"),
     user(9, "[Request interrupted by user]"),
+    user(9, "Context handoff (full_thread_summary):\nProvider context handoff. The earlier approach was wrong."),
+    # flagged summary without the prefix; its quoted interrupt must not count as a real one
+    dict(user(9, "Summary of the earlier work: the user hit [Request interrupted by user] and the wrong approach was reverted."),
+         isCompactSummary=True),
     rec("brand-new-type", 10),
+    # 2.1.32x request-logging records: known, so no drift
+    *[rec(t, 10) for t in ("session-owner", "api-request", "api-request-shape", "api-request-blob", "tools-used")],
 ]
 (proj / "aaaaaaaa-0000-0000-0000-000000000000.jsonl").write_text("\n".join(json.dumps(r) for r in sess))
 sub_dir = proj / "aaaaaaaa-0000-0000-0000-000000000000" / "subagents"; sub_dir.mkdir(parents=True)
@@ -102,6 +118,15 @@ checks = {
     "main-thread bulk reads counted": m["main_transcript_fetches"] == 1 and m["main_big_results"] == 1,
     "carried cost nonzero": re.search(r"^\s+[1-9]\d*k carried\s+10k tok .*big\.ts", stats, re.M) is not None,
     "schema canary fires": "brand-new-type" in stats,
+    "request-logging types are not drift": "unknown record types {'brand-new-type': 1}" in stats,
+    "only the one real steer is counted": m["steer_candidates"] == 1,
+    "compaction summary is not a steer": "continued from a previous conversation" not in stats and "CONTEXT[" in digest
+        and not re.search(r"USER.*continued from a previous", digest),
+    "delegated-task result is not a steer": "Delegated task node" not in stats and "CONTEXT[2026-09-20T10:06]: Delegated task node:" in digest
+        and not re.search(r"USER.*Delegated task node", digest),
+    "context handoff is not a steer": "Context handoff" not in stats and "CONTEXT[2026-09-20T10:09]: Context handoff (" in digest,
+    "first typed prompt after a summary is still turn 1": not re.search(r"USER\[steer\?\].*instead of the digest", digest),
+    "synthetic messages are not user messages": m["user_msgs"] == 2,
     "memory hygiene": all(x in stats for x in ("orphan.md` not in MEMORY.md", "orphan.md` has no frontmatter", "missing `gone.md`")),
     "episode grouped under skill": "## standup:" in (out / "episodes-01.md").read_text(),
 }
