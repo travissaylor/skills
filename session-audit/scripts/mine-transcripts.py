@@ -41,9 +41,9 @@ STEER_RE = re.compile(
     r"not working|isn'?t working|that'?s (not|wrong)|not what i|instead of|i don'?t (want|like|think|see)|"
     r"why (did|is|are|does) (you|it|this|that)|you (missed|forgot|didn'?t|skipped)|revert|undo|i said|"
     r"too (long|verbose|much|wordy)|shorter|wrong|broke|regress)", re.I)
-# user-role messages the person didn't type: compaction summaries and T3 delegated-task results.
+# user-role messages the person didn't type: compaction summaries, T3 delegated-task results and context handoffs.
 # They become "synthetic" events: shown in the digest, never counted as user turns, steers, or interrupts.
-NOT_TYPED = ("This session is being continued from a previous conversation", "Delegated task node:")
+NOT_TYPED = ("This session is being continued from a previous conversation", "Delegated task node:", "Context handoff (")
 INTERRUPT_RE = re.compile(r"\[Request interrupted by user[^\]]*\]")
 SCRATCH_RE = re.compile(r"/private/tmp/claude-\d+/[^/\s]+/[0-9a-f-]{36}/scratchpad")
 SPLIT_RE = re.compile(r"\s*(?:&&|\|\||;|\|)\s*")

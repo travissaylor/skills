@@ -44,13 +44,14 @@ sess = [
     result(4, "t3", "x" * 40_000),
     asst(5, "m3", [dict(type="text", text="Done.")], skill="standup"),
     # delegated-task result between the skill and the steer: must not break the steer's skill attribution
-    user(6, "Delegated task node: abc123 finished. The fix didn't work, still broken."),
+    user(6, "Delegated task node:delegated-task:abc123 (Check the fix) [completed]:\nThe fix didn't work, still broken."),
     user(6, "that's not what I asked, the Daily is wrong"),
     asst(7, "m4", [tool("t4", "Agent", subagent_type="Explore", model="opus", description="look", prompt="p")]),
     asst(7, "m4", [tool("t5", "mcp__claude_ai_Notion__notion-fetch", id="p", include_transcript=True)]),
     result(8, "t5", "short"),
     result(8, "t4", "ok"),
     user(9, "[Request interrupted by user]"),
+    user(9, "Context handoff (full_thread_summary):\nProvider context handoff. The earlier approach was wrong."),
     # flagged summary without the prefix; its quoted interrupt must not count as a real one
     dict(user(9, "Summary of the earlier work: the user hit [Request interrupted by user] and the wrong approach was reverted."),
          isCompactSummary=True),
@@ -117,11 +118,13 @@ checks = {
     "main-thread bulk reads counted": m["main_transcript_fetches"] == 1 and m["main_big_results"] == 1,
     "carried cost nonzero": re.search(r"^\s+[1-9]\d*k carried\s+10k tok .*big\.ts", stats, re.M) is not None,
     "schema canary fires": "brand-new-type" in stats,
-    "request-logging types are not drift": not any(t in stats for t in ("session-owner", "api-request", "tools-used")),
+    "request-logging types are not drift": "unknown record types {'brand-new-type': 1}" in stats,
     "only the one real steer is counted": m["steer_candidates"] == 1,
     "compaction summary is not a steer": "continued from a previous conversation" not in stats and "CONTEXT[" in digest
         and not re.search(r"USER.*continued from a previous", digest),
-    "delegated-task result is not a steer": "Delegated task node" not in stats and not re.search(r"USER.*Delegated task node", digest),
+    "delegated-task result is not a steer": "Delegated task node" not in stats and "CONTEXT[2026-09-20T10:06]: Delegated task node:" in digest
+        and not re.search(r"USER.*Delegated task node", digest),
+    "context handoff is not a steer": "Context handoff" not in stats and "CONTEXT[2026-09-20T10:09]: Context handoff (" in digest,
     "first typed prompt after a summary is still turn 1": not re.search(r"USER\[steer\?\].*instead of the digest", digest),
     "synthetic messages are not user messages": m["user_msgs"] == 2,
     "memory hygiene": all(x in stats for x in ("orphan.md` not in MEMORY.md", "orphan.md` has no frontmatter", "missing `gone.md`")),
