@@ -30,7 +30,9 @@ BIG = 15_000  # chars; a tool result this size is a token-sink candidate
 KNOWN_TYPES = {"user", "assistant", "system", "attachment", "summary", "mode", "last-prompt", "atis-latch", "bridge-session", "fork-context-ref",
                "file-history-snapshot", "file-history-delta", "queue-operation", "cost-state", "custom-title", "ai-title",
                "tag", "agent-name", "permission-mode", "pr-link", "frame-link", "artifact-comment-monitor",
-               "artifact-autoreact-ledger"}
+               "artifact-autoreact-ledger",
+               # 2.1.32x request-logging records: no usage, tool results, or skill fields
+               "session-owner", "api-request", "api-request-shape", "api-request-blob", "tools-used"}
 GENERIC_TOOLS = {"Read", "Edit", "Write", "MultiEdit", "Grep", "Glob", "ToolSearch", "TodoWrite", "NotebookEdit"}
 TRIVIAL_SHAPES = {"ls", "echo", "pwd", "true", "wc", "head", "tail", "cat", "sed -n", "grep", "sort", "uniq", "awk",
                   "cut", "tr", "xargs", "find", "jq", "python3", "date", "which", "test", "["}

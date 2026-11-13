@@ -42,6 +42,8 @@ sess = [
     result(8, "t4", "ok"),
     user(9, "[Request interrupted by user]"),
     rec("brand-new-type", 10),
+    # 2.1.32x request-logging records: known, so no drift
+    *[rec(t, 10) for t in ("session-owner", "api-request", "api-request-shape", "api-request-blob", "tools-used")],
 ]
 (proj / "aaaaaaaa-0000-0000-0000-000000000000.jsonl").write_text("\n".join(json.dumps(r) for r in sess))
 sub_dir = proj / "aaaaaaaa-0000-0000-0000-000000000000" / "subagents"; sub_dir.mkdir(parents=True)
@@ -102,6 +104,7 @@ checks = {
     "main-thread bulk reads counted": m["main_transcript_fetches"] == 1 and m["main_big_results"] == 1,
     "carried cost nonzero": re.search(r"^\s+[1-9]\d*k carried\s+10k tok .*big\.ts", stats, re.M) is not None,
     "schema canary fires": "brand-new-type" in stats,
+    "request-logging types are not drift": not any(t in stats for t in ("session-owner", "api-request", "tools-used")),
     "memory hygiene": all(x in stats for x in ("orphan.md` not in MEMORY.md", "orphan.md` has no frontmatter", "missing `gone.md`")),
     "episode grouped under skill": "## standup:" in (out / "episodes-01.md").read_text(),
 }
