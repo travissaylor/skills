@@ -41,9 +41,9 @@ STEER_RE = re.compile(
     r"not working|isn'?t working|that'?s (not|wrong)|not what i|instead of|i don'?t (want|like|think|see)|"
     r"why (did|is|are|does) (you|it|this|that)|you (missed|forgot|didn'?t|skipped)|revert|undo|i said|"
     r"too (long|verbose|much|wordy)|shorter|wrong|broke|regress)", re.I)
-# user-role messages the person didn't type: compaction summaries and T3 delegated-task results
+# user-role messages the person didn't type: compaction summaries and T3 delegated-task results.
+# They become "synthetic" events: shown in the digest, never counted as user turns, steers, or interrupts.
 NOT_TYPED = ("This session is being continued from a previous conversation", "Delegated task node:")
-def is_steer(text): return not text.lstrip().startswith(NOT_TYPED) and STEER_RE.search(text) is not None
 INTERRUPT_RE = re.compile(r"\[Request interrupted by user[^\]]*\]")
 SCRATCH_RE = re.compile(r"/private/tmp/claude-\d+/[^/\s]+/[0-9a-f-]{36}/scratchpad")
 SPLIT_RE = re.compile(r"\s*(?:&&|\|\||;|\|)\s*")
@@ -179,6 +179,7 @@ def parse(path: Path):
                     continue
                 txt = text_of(content).strip()
                 if not txt: continue
+                if r.get("isCompactSummary") or txt.startswith(NOT_TYPED): ev.append(("synthetic", txt, ts)); continue
                 m = re.search(r"<command-name>/?([\w:.-]+)</command-name>", txt)
                 if m: ev.append(("slash", m.group(1), None)); continue
                 if INTERRUPT_RE.search(txt): ev.append(("interrupt", INTERRUPT_RE.search(txt).group(0), None)); continue
@@ -324,7 +325,7 @@ for s in sessions:
             if kind == "slash": agg["slash"][e[1]] += 1
             if kind == "user":
                 user_turns += 1; metrics["user_msgs"] += 1
-                if user_turns > 1 and is_steer(e[1]):
+                if user_turns > 1 and STEER_RE.search(e[1]):
                     steers.append((sid, e[1][:160].replace("\n", " "), last_run_skill))
                     if last_run_skill: skill[last_run_skill]["steer_after"].append(sid)
             if kind == "interrupt":
@@ -436,8 +437,9 @@ def render(s):
         elif kind == "interrupt": emit(f"  INTERRUPT {e[1]}"); cur_skill = None
         elif kind == "user":
             user_turns += 1
-            flag = "[steer?]" if user_turns > 1 and is_steer(e[1]) else ""
+            flag = "[steer?]" if user_turns > 1 and STEER_RE.search(e[1]) else ""
             emit(f"  USER{flag}[{(e[2] or '')[:16]}]: {one_line(e[1], 500)}"); cur_skill = None
+        elif kind == "synthetic": emit(f"  CONTEXT[{(e[2] or '')[:16]}]: {one_line(e[1], 160)}")
     if rep: out.append(f"    (×{rep + 1})")
     for sub in s["subs"]:
         mm = sub["meta"]; tc = C(t["name"] for t in sub["tools"].values())

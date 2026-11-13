@@ -7,7 +7,7 @@ You are one miner in a session audit of the user's Claude Code history. The orch
 - `stats.md`: computed aggregates. **Every count you need is already in it.** Cite its numbers. Never count lines yourself, because counting over long text is where models go wrong.
 - `digest-NN.md`: one block per session, chronological. Line types:
   - `## SESSION <id8> project=… api_calls=… cost_state=$… errors=…` opens a session.
-  - `USER[ts]:` is what the user typed. `USER[steer?]` means a regex matched redirect wording (about half are real redirects).
+  - `USER[ts]:` is what the user typed. `USER[steer?]` means a regex matched redirect wording (about half are real redirects). `CONTEXT[ts]:` is user-role text the user didn't type (a context-compaction summary or a delegated-task result); never count it as a steer or a request.
   - `USER SLASH /x` is a slash command. `INTERRUPT` means the user stopped the turn.
   - `SKILL-TURN <name>` means the following assistant turns ran under that skill.
   - `TOOL <name>: <args> (→Nk)` is a call with its result size. `TOOL!` is a call that errored, and the next `ERR:` line is the error.
