@@ -3,8 +3,13 @@
     python3 test_mine_transcripts.py
 Each assertion pins a bug the first version had or a signal the audit depends on."""
 import re
-import json, subprocess, sys, tempfile
+import json, os, subprocess, sys, tempfile
 from pathlib import Path
+
+# the scripts use the platform default encoding; on Windows (cp1252) they crash on "→". Run everything in UTF-8 mode.
+if not sys.flags.utf8_mode:
+    os.environ["PYTHONUTF8"] = "1"
+    sys.exit(subprocess.run([sys.executable, "-X", "utf8", __file__, *sys.argv[1:]]).returncode)
 
 HERE = Path(__file__).parent
 tmp = Path(tempfile.mkdtemp())
@@ -41,6 +46,9 @@ sess = [
     result(8, "t5", "short"),
     result(8, "t4", "ok"),
     user(9, "[Request interrupted by user]"),
+    # user-role text nobody typed, with steer words in it: must not count as steers
+    user(9, "This session is being continued from a previous conversation that ran out of context. That's wrong, revert it."),
+    user(9, "Delegated task node: abc123 finished. The fix didn't work, still broken."),
     rec("brand-new-type", 10),
     # 2.1.32x request-logging records: known, so no drift
     *[rec(t, 10) for t in ("session-owner", "api-request", "api-request-shape", "api-request-blob", "tools-used")],
@@ -105,6 +113,9 @@ checks = {
     "carried cost nonzero": re.search(r"^\s+[1-9]\d*k carried\s+10k tok .*big\.ts", stats, re.M) is not None,
     "schema canary fires": "brand-new-type" in stats,
     "request-logging types are not drift": not any(t in stats for t in ("session-owner", "api-request", "tools-used")),
+    "compaction summary is not a steer": m["steer_candidates"] == 1 and "continued from a previous conversation" not in stats
+        and not re.search(r"USER\[steer\?\].*continued from a previous", digest),
+    "delegated-task result is not a steer": "Delegated task node" not in stats and not re.search(r"USER\[steer\?\].*Delegated task node", digest),
     "memory hygiene": all(x in stats for x in ("orphan.md` not in MEMORY.md", "orphan.md` has no frontmatter", "missing `gone.md`")),
     "episode grouped under skill": "## standup:" in (out / "episodes-01.md").read_text(),
 }
