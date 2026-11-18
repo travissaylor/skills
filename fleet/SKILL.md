@@ -11,8 +11,8 @@ The user runs T3 Code on several machines. Facts about each one are written down
 
 The machine files are in `~/.config/fleet/`, one per host, named `<hostname>.md` in lowercase. Each host keeps a copy of every machine's file, so an agent can read about a machine it is about to delegate to.
 
-1. Run `hostname` and lowercase the result. Windows reports `HP-EliteBook`, which maps to `hp-elitebook.md`.
-2. Read `~/.config/fleet/<hostname>.md` for the machine you are on.
+1. Run `hostname`, lowercase the result, and drop everything from the first dot. Windows reports `HP-EliteBook`, which maps to `hp-elitebook.md`. macOS can report `MacBook-Pro-M2.local`, which maps to `macbook-pro-m2.md`. Do not use `hostname -s`, because Windows rejects it.
+2. Read `~/.config/fleet/<hostname>.md` for the machine you are on. If no file matches, list `~/.config/fleet/` and match by the machine names in the table below before deciding the machine is new.
 3. Before delegating, read the file for the target machine too.
 
 | Machine | Role | OS | Local file |
@@ -24,13 +24,13 @@ The machine files are in `~/.config/fleet/`, one per host, named `<hostname>.md`
 
 The T3 environment id of the machine you are on is also in `~/.t3/userdata/environment-id`.
 
-**If a file is missing**, say so, then ask the user to copy it from another host. If the machine is new, copy [machine-template.md](machine-template.md) to `~/.config/fleet/<hostname>.md` and fill it in from the machine itself.
+**If a file is missing**, say so, then ask the user to copy it from another host. If the machine is new, create `~/.config/fleet/<hostname>.md` from the block in [machine-template.md](machine-template.md) and fill it in from the machine itself.
 
 ## Rules that hold on every machine
 
-- **Reach another machine through T3**, not SSH. Pass the target's environment id from its machine file as `target.environmentId` to `delegate_task`, and pass a `target.projectId` from `t3_project_list` on that machine.
+- **Reach another machine through T3**, not SSH. Pass the target's environment id from its machine file as `target.environmentId` to `delegate_task`, and pass a `target.projectId` from `t3_project_list` on that machine. If the machine file has no id, `t3_environment_links` lists the linked machines with their ids.
 - **The skills repo** is `github.com/travissaylor/skills`, cloned to `~/projects/skills` on each host. `make install` links every skill into `~/.claude/skills`, `~/.codex/skills`, `~/.agents/skills` and `~/.gemini/skills`. Pull, then rerun `make install` after a new skill lands.
-- **This skill is linked from `~/projects/skills-main`**, a worktree of the skills repo that tracks the main branch, so it stays installed while `~/projects/skills` is on a feature branch. Refresh it with `git -C ~/projects/skills-main pull`.
+- **This skill is linked from `~/projects/skills-main`**, a worktree of the skills repo that tracks the main branch, so it stays installed while `~/projects/skills` is on a feature branch. Refresh it with `git -C ~/projects/skills-main pull`. `make install` links every skill to the checkout it runs from, this one included, so after running it from `~/projects/skills`, point the `fleet` links back at `~/projects/skills-main/fleet`.
 - **Global instruction files** `~/.claude/CLAUDE.md` and `~/.codex/AGENTS.md` on each host only name the machine and point here. Keep facts in the machine files, not in those files.
 - **Install missing tools** instead of working around them. Then update the machine's file, so the next agent does not rediscover the gap.
 - **Record facts that stay true**: hardware limits, install methods, where things live. Leave out transient state such as free disk space or running PIDs.

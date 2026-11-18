@@ -10,7 +10,7 @@ The linter is a static check. It reads files, matches patterns, and prints findi
 |---|---|
 | `make lint` | Prints the full backlog, no baseline filtering. Use it to see the real state. |
 | `make lint-ci` | Prints only findings beyond the baseline. This is the commit gate and the CI gate. |
-| `make test` | Runs the linter and helper script test suites. |
+| `make test` | Runs the linter and helper script test suites, then the session-audit fixture test. |
 | `make baseline` | Rewrites `tools/lint_baseline.json` from current findings. Run it after a deliberate fix. |
 | `make install-hooks` | Points `core.hooksPath` at `.githooks` and marks the pre-commit hook runnable. |
 | `make check` | Compile check, then `make test`, then `make lint-ci`. Run it before pushing. |
@@ -23,7 +23,7 @@ Every target is a one line wrapper. The underlying command is `python3 tools/lin
 
 ## What it scans
 
-Skills are every immediate subdirectory of the repo root that holds a `SKILL.md`, skipping dotted directories and `tools`. Prose checks run over every markdown file in the repo, skipping dotted directories, `tools`, and `node_modules`. That is 16 files today: the root `README.md`, twelve `SKILL.md` files, the two `session-audit` reference files, and `fleet/machine-template.md`.
+Skills are every immediate subdirectory of the repo root that holds a `SKILL.md`, skipping dotted directories and `tools`. Prose checks run over every markdown file in the repo, skipping dotted directories, `tools`, and `node_modules`. That is 16 files today: the root `README.md`, twelve `SKILL.md` files, the two `session-audit` reference files, and `fleet/machine-template.md`. SK011 alone reads wider: every UTF-8 text file in the repo, dotted directories and `tools` included, skipping `.git`, `node_modules`, `__pycache__`, and `tools/fixtures`.
 
 Prose checks run on a masked view of each file. Fenced code blocks, blockquotes, inline code spans, and URLs are blanked out first, with line numbers and character offsets preserved. A semicolon inside a code sample is not a finding.
 
@@ -35,7 +35,7 @@ Prose checks run on a masked view of each file. Fenced code blocks, blockquotes,
 |---|---|
 | `PATH` | Repo root to lint. Defaults to the repo holding the script. |
 | `--baseline FILE` | Suppress up to the per-key count recorded in FILE. Report the rest. |
-| `--write-baseline FILE` | Write current findings to FILE as a baseline, then exit 0. |
+| `--write-baseline FILE` | Write current findings to FILE as a baseline, then exit 0. SK011 findings are never written, and the command exits 1 while any remain. |
 | `--format {text,json}` | Output format. `text` is grouped by file, `json` is a flat list of finding objects. |
 | `--warnings-as-errors` | Let warnings drive the exit code alongside errors. |
 | `--max-words N` | Body word budget for the SK102 check. Default 5000. |
@@ -66,7 +66,7 @@ Codes are frozen. A new check gets a new code, and a retired check leaves its nu
 | SK008 | A backticked or bolded cross-skill name has no sibling skill directory. |
 | SK009 | A banned pattern: a foreign dotted directory such as `.william/`, a hardcoded `/Users/<name>/` path, or a leftover `TODO` or `FIXME`. |
 | SK010 | No skills were discovered under the root. This guards against a linter that silently checks nothing. |
-| SK011 | A Tailscale address from `100.64.0.0/10` or a `*.ts.net` MagicDNS name. Fenced code is scanned too, because a private address is just as public in a code block. Machine facts belong in local files, as the `fleet` skill does with `~/.config/fleet/`. |
+| SK011 | A Tailscale IPv4 address from `100.64.0.0/10`, an IPv6 address from `fd7a:115c:a1e0::/48`, or a `*.ts.net` MagicDNS name, in any text file. Fenced code counts, because a private address is just as public in a code block. Ranges in CIDR notation and the shared resolver `100.100.100.100` are allowed. The message never repeats the address. Skip directives and the baseline cannot hide SK011. Machine facts belong in local files, as the `fleet` skill does with `~/.config/fleet/`. |
 
 ### Structure warnings
 
@@ -138,7 +138,7 @@ Two HTML comments turn off checks in a file:
 <!-- lint-skip-next-line: SK205 -->
 ```
 
-`lint-skip-file` may appear anywhere in the file and applies to the whole file. `lint-skip-next-line` applies to the line that follows it. The token `all` suppresses every code.
+`lint-skip-file` may appear anywhere in the file and applies to the whole file. `lint-skip-next-line` applies to the line that follows it. The token `all` suppresses every code except SK011, which no directive or baseline can hide. A suppressed privacy finding is still published, and a baselined one would write the address into `tools/lint_baseline.json`.
 
 **The rule: suppress a check only when the file is a legitimate exception, never to hide a defect.**
 

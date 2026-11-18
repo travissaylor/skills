@@ -111,6 +111,10 @@ def _count_by_key(findings) -> dict:
 
 
 def _write_baseline(findings, path: str) -> int:
+    from .core import UNSUPPRESSIBLE
+
+    held_back = [f for f in findings if f.code in UNSUPPRESSIBLE]
+    findings = [f for f in findings if f.code not in UNSUPPRESSIBLE]
     counts = _count_by_key(findings)
     payload = {
         "version": BASELINE_VERSION,
@@ -119,6 +123,11 @@ def _write_baseline(findings, path: str) -> int:
     text = json.dumps(payload, indent=2) + "\n"
     Path(path).write_text(text, encoding="utf-8")
     print(f"wrote {len(findings)} findings to {path}")
+    if held_back:
+        # A baseline never records these, so the gate stays shut until they are fixed.
+        _print_text(held_back)
+        print(f"{len(held_back)} findings cannot be baselined, fix them before committing")
+        return 1
     return 0
 
 
@@ -152,11 +161,15 @@ def _apply_baseline(findings, baseline_counts: dict):
     Keys carry no line number, so a key can cover many findings. Counting keeps
     line-shift immunity while still catching an extra occurrence.
     """
+    from .core import UNSUPPRESSIBLE
+
     by_key = {}
+    excess = [f for f in findings if f.code in UNSUPPRESSIBLE]
     for f in findings:
+        if f.code in UNSUPPRESSIBLE:
+            continue
         by_key.setdefault(f.key(), []).append(f)
 
-    excess = []
     for key, group in by_key.items():
         allowed = baseline_counts.get(key, 0)
         if len(group) <= allowed:

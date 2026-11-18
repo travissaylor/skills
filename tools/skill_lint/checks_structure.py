@@ -87,12 +87,18 @@ _PLACEHOLDER_USERS = {
 _USERS_PATH_RE = re.compile(r"/Users/([A-Za-z0-9._<>-]+)/")
 _MARKER_RE = re.compile(r"\b(TODO|FIXME)\b")
 
-# Tailscale hands out addresses from the CGNAT block 100.64.0.0/10 and names
-# devices under <tailnet>.ts.net. Either one in a public repo maps a private network.
+# Tailscale hands out IPv4 addresses from 100.64.0.0/10, IPv6 addresses from
+# fd7a:115c:a1e0::/48, and names devices under <tailnet>.ts.net. Any of them in
+# a public repo maps a private network.
 _TAILNET_IP_RE = re.compile(
-    r"(?<![\d.])100\.(?:6[4-9]|[7-9]\d|1[01]\d|12[0-7])(?:\.(?:25[0-5]|2[0-4]\d|1?\d?\d)){2}(?![\d.])"
+    r"(?<![\w.])100\.(?:6[4-9]|[7-9]\d|1[01]\d|12[0-7])(?:\.(?:25[0-5]|2[0-4]\d|1?\d?\d)){2}(?![\w-]|\.\d)"
 )
-_TAILNET_NAME_RE = re.compile(r"\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.ts\.net\b", re.IGNORECASE)
+_TAILNET_IP6_RE = re.compile(r"(?<![0-9a-f:])fd7a:115c:a1e0:[0-9a-f:]*[0-9a-f]", re.IGNORECASE)
+_TAILNET_NAME_RE = re.compile(
+    r"(?<![\w.-])[a-z0-9-]+(?:\.[a-z0-9-]+)*\.ts\.net(?![\w-]|\.[\w-])", re.IGNORECASE
+)
+# The MagicDNS resolver has this address on every tailnet, so naming it leaks nothing.
+_TAILNET_SHARED_IPS = {"100.100.100.100"}
 
 _IDENT_RE = re.compile(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$")
 _ROUTE_VERB_RE = re.compile(
@@ -139,6 +145,7 @@ def run(
             findings.extend(_installed_checks(skill, root))
     findings.extend(_similarity_checks(skills, root))
     findings.extend(_banned_outside_skills(skills, root))
+    findings.extend(_private_network_checks(root))
 
     findings.sort(key=lambda f: (f.path, f.line, f.code, f.message))
     return findings
@@ -163,7 +170,6 @@ def _banned_outside_skills(skills: list, root: Path) -> list:
         except OSError:
             continue
         out.extend(_banned_in_text(text, _rel(path, root), root))
-        out.extend(_private_network_in_text(text, _rel(path, root)))
     return out
 
 
@@ -472,29 +478,49 @@ def _banned_checks(skill, root: Path) -> list:
         except OSError:
             continue
         out.extend(_banned_in_text(text, _rel(target, root), root))
-        out.extend(_private_network_in_text(text, _rel(target, root)))
     return out
 
 
 # --- SK011 --------------------------------------------------------------------
 
 
-def _private_network_in_text(text: str, path: str) -> list:
-    """Tailnet addresses and MagicDNS names.
+def _private_network_checks(root: Path) -> list:
+    """Tailnet addresses and MagicDNS names in any text file in the repo.
 
-    Scans the raw text, fences and code spans included, because a private
-    address is just as public inside a code block.
+    Unlike the other checks this reads every text file, not only markdown, and
+    it reads raw text, fences and code spans included, because a private
+    address is just as public in a workflow file or a code block. The message
+    never repeats the matched value, so CI output does not republish it.
     """
     out: list = []
-    for regex, label in ((_TAILNET_IP_RE, "tailnet IP"), (_TAILNET_NAME_RE, "tailnet hostname")):
+    for path, text in core.repo_text_files(root):
+        out.extend(_private_network_in_text(text, _rel(path, root)))
+    return out
+
+
+def _private_network_in_text(text: str, path: str) -> list:
+    out: list = []
+    patterns = (
+        (_TAILNET_IP_RE, "tailnet IPv4 address"),
+        (_TAILNET_IP6_RE, "tailnet IPv6 address"),
+        (_TAILNET_NAME_RE, "tailnet hostname under ts.net"),
+    )
+    for regex, label in patterns:
         for match in regex.finditer(text):
+            value = match.group(0)
+            if value in _TAILNET_SHARED_IPS:
+                continue
+            # A range written as CIDR, such as the block this check is named
+            # after, documents the rule rather than a machine.
+            if text[match.end() : match.end() + 1] == "/" and value.endswith((".0", ":")):
+                continue
             out.append(
                 Finding(
                     "SK011",
                     "error",
                     path,
                     _line_of(text, match.start()),
-                    f"{label} {_quote(match.group(0))}, keep machine facts in local files",
+                    f"{label}, keep machine facts in local files outside the repo",
                 )
             )
     return out

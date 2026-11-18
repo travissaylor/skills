@@ -4,11 +4,11 @@ Agent skills for Claude Code, Codex and Antigravity, and the Python tooling that
 
 ## Tested engineering work
 
-- **[session-audit](session-audit/SKILL.md)** mines agent session history for repeated manual work, misfiring skills, tool failures and token waste. Three standard-library distillers parse transcripts from Claude Code (`mine-transcripts.py`), Codex (`mine-codex.py`) and Antigravity (`mine-agy.py`) and compute every count. Sonnet subagents only classify and explain what the distillers flag. Then `verify-findings.py` checks each quoted piece of evidence against the session digests. A quote counts only if at least 20 characters of it appear verbatim in that session, a finding with no verified quote is dropped, and session counts are recomputed from the verified quotes alone. A fixture test, `session-audit/scripts/test_mine_transcripts.py`, pins the distiller and verifier behavior.
+- **[session-audit](session-audit/SKILL.md)** mines agent session history for repeated manual work, misfiring skills, tool failures and token waste. Three standard-library distillers parse transcripts from Claude Code (`mine-transcripts.py`), Codex (`mine-codex.py`) and Antigravity (`mine-agy.py`) and compute every count. Sonnet subagents then classify the flagged events, name the patterns and propose fixes, but never count. `verify-findings.py` checks each quote a subagent cites. A quote counts only if it is at least 20 characters long and the whole quote, whitespace-normalized, appears in that session's digest. The script recomputes session counts from verified quotes, marks a finding with none as `UNSUPPORTED` and exits 1, and the skill drops those findings before the report. A fixture test, `session-audit/scripts/test_mine_transcripts.py`, covers the Claude Code distiller and the verifier, and CI runs it.
 
-- **[Skill linter](tools/README.md)** (`tools/skill_lint/`) checks every skill for structural defects such as broken links, unresolved paths and frontmatter that disagrees with its directory, and for prose defects drawn from the writing skills below. It has 30 finding codes, 60 unit tests against fixture skills, a pre-commit hook, and a count-based baseline so the gate fires only on new findings. It uses the Python standard library only and makes no model calls.
+- **[Skill linter](tools/README.md)** (`tools/skill_lint/`) checks every skill for structural defects such as broken links, unresolved paths and frontmatter that disagrees with its directory, and for prose defects drawn from the writing skills below. It has 30 finding codes, 61 linter tests, a pre-commit hook, and a count-based baseline so the gate fires only on new findings. It uses the Python standard library only and makes no model calls.
 
-- **[CI](.github/workflows/lint.yml)** runs on every push and pull request. On Ubuntu it compiles `tools/`, runs `make test` (78 tests: the linter suite plus contract tests for the `handoff` store script and the `conductor-multi` executor launcher, both run against fake CLIs and temporary directories) and runs the linter against the baseline. On macOS it runs the 13 `handoff` tests again under the system Bash, because that script must work on the Bash 3.2 that ships with macOS.
+- **[CI](.github/workflows/lint.yml)** runs on every push and pull request. On Ubuntu it compiles `tools/`, runs `make test`, and runs the linter against the baseline. `make test` is 79 unit tests (the linter suite plus contract tests for the `handoff` store script and the `conductor-multi` executor launcher, both run against fake CLIs and temporary directories) followed by the session-audit fixture test. On macOS it runs the 13 `handoff` tests again under the system Bash, because that script must work on the Bash 3.2 that ships with macOS.
 
 ## Skills
 
@@ -16,7 +16,7 @@ Install one skill with `npx skills@latest add travissaylor/skills/<name>`, or al
 
 ### Maintenance
 
-- **session-audit**: Audit Claude Code session history for repeated manual work, skills that misfire, tool failures, and token waste. A deterministic distiller does all counting, Sonnet miners classify and explain, and every finding is quote-verified and checked on the live machine. Local state (ledger, fixes, custom metrics) lives in `~/.claude/session-audit/`, outside the skill.
+- **session-audit**: Audit Claude Code session history, plus Codex and Antigravity history when present, for repeated manual work, skills that misfire, tool failures, and token waste. A deterministic distiller does all counting, Sonnet miners classify and explain, and every finding is quote-verified and checked on the live machine. Local state (ledger, fixes, custom metrics) lives in `~/.claude/session-audit/`, outside the skill.
 
   ```
   npx skills@latest add travissaylor/skills/session-audit
@@ -96,11 +96,11 @@ To sync between machines, list each peer's ssh host name in `~/handoffs/peers`, 
 
 ## Installing from a clone
 
-`make install` symlinks every skill in this repo into `~/.claude/skills`, `~/.codex/skills`, `~/.agents/skills`, and `~/.gemini/skills`, so each agent loads the same versioned copy. Anything already at a target path is moved aside with a `.bak-<timestamp>` suffix, never deleted. Run it on each machine after cloning or pulling a skill that was added since.
+`make install` symlinks every skill in this repo into `~/.claude/skills`, `~/.codex/skills`, `~/.agents/skills`, and `~/.gemini/skills`, so each agent loads the same versioned copy. Anything already at a target path is moved to `~/.skills-backup/<timestamp>/`, never deleted. Run it on each machine after cloning or pulling a skill that was added since.
 
 ## Running the skill linter
 
-`tools/lint_skills.py` checks every skill in this repo for structural defects and prose defects. Structure: frontmatter that disagrees with its directory name, links and backticked paths that do not resolve, cross-skill references with no matching directory, hardcoded home paths, leftover markers. Prose: em dashes, semicolons, curly quotes, title-case headings, AI vocabulary, filler, and stacked hedging, all drawn from the writing skills above. It is a static check. No model calls, and no third-party dependencies, Python 3 standard library only.
+`tools/lint_skills.py` checks every skill in this repo for structural defects and prose defects. Structure: frontmatter that disagrees with its directory name, links and backticked paths that do not resolve, cross-skill references with no matching directory, hardcoded home paths, leftover markers, and Tailscale addresses in any text file. Prose: em dashes, semicolons, curly quotes, title-case headings, AI vocabulary, filler, and stacked hedging, all drawn from the writing skills above. It is a static check. No model calls, and no third-party dependencies, Python 3 standard library only.
 
 See the full backlog:
 

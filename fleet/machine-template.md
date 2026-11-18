@@ -1,6 +1,6 @@
 # Machine template
 
-Copy this file to `~/.config/fleet/<hostname>.md` on every host, then fill it in on the machine it describes. Keep the filled-in copy out of the repo. Replace each line in angle brackets and delete any section that does not apply.
+Create `~/.config/fleet/` if it does not exist. Copy the contents of the fenced block below, without the fence, to `~/.config/fleet/<hostname>.md`, using the lowercase short hostname. Fill it in on the machine it describes, then copy the file to every other host. Keep the filled-in copy out of the repo. Replace each line in angle brackets and delete any section that does not apply.
 
 ```markdown
 # <hostname>
@@ -66,6 +66,8 @@ Copy this file to `~/.config/fleet/<hostname>.md` on every host, then fill it in
 
 | Fact | Linux | macOS | Windows (PowerShell) |
 |---|---|---|---|
+| Hostname | `hostname` | `hostname` | `hostname` |
+| T3 environment id | `cat ~/.t3/userdata/environment-id` | `cat ~/.t3/userdata/environment-id` | `Get-Content ~/.t3/userdata/environment-id` |
 | OS version | `cat /etc/os-release` | `sw_vers` | `Get-ComputerInfo OsName,OsBuildNumber` |
 | CPU and flags | `lscpu` | `sysctl -n machdep.cpu.brand_string` | `Get-CimInstance Win32_Processor` |
 | RAM | `free -h` | `sysctl -n hw.memsize` | `Get-CimInstance Win32_ComputerSystem` |
