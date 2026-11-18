@@ -1,4 +1,4 @@
-"""Structural checks: SK001 to SK010 errors, SK101 to SK106 warnings.
+"""Structural checks: SK001 to SK011 errors, SK101 to SK106 warnings.
 
 Prose and vocabulary rules (SK2xx) live in checks_prose.py.
 """
@@ -87,6 +87,13 @@ _PLACEHOLDER_USERS = {
 _USERS_PATH_RE = re.compile(r"/Users/([A-Za-z0-9._<>-]+)/")
 _MARKER_RE = re.compile(r"\b(TODO|FIXME)\b")
 
+# Tailscale hands out addresses from the CGNAT block 100.64.0.0/10 and names
+# devices under <tailnet>.ts.net. Either one in a public repo maps a private network.
+_TAILNET_IP_RE = re.compile(
+    r"(?<![\d.])100\.(?:6[4-9]|[7-9]\d|1[01]\d|12[0-7])(?:\.(?:25[0-5]|2[0-4]\d|1?\d?\d)){2}(?![\d.])"
+)
+_TAILNET_NAME_RE = re.compile(r"\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.ts\.net\b", re.IGNORECASE)
+
 _IDENT_RE = re.compile(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$")
 _ROUTE_VERB_RE = re.compile(
     r"\b(load|loads|loaded|loading|route|routes|routed|routing|invoke|invokes|invoked)\b",
@@ -156,6 +163,7 @@ def _banned_outside_skills(skills: list, root: Path) -> list:
         except OSError:
             continue
         out.extend(_banned_in_text(text, _rel(path, root), root))
+        out.extend(_private_network_in_text(text, _rel(path, root)))
     return out
 
 
@@ -464,6 +472,31 @@ def _banned_checks(skill, root: Path) -> list:
         except OSError:
             continue
         out.extend(_banned_in_text(text, _rel(target, root), root))
+        out.extend(_private_network_in_text(text, _rel(target, root)))
+    return out
+
+
+# --- SK011 --------------------------------------------------------------------
+
+
+def _private_network_in_text(text: str, path: str) -> list:
+    """Tailnet addresses and MagicDNS names.
+
+    Scans the raw text, fences and code spans included, because a private
+    address is just as public inside a code block.
+    """
+    out: list = []
+    for regex, label in ((_TAILNET_IP_RE, "tailnet IP"), (_TAILNET_NAME_RE, "tailnet hostname")):
+        for match in regex.finditer(text):
+            out.append(
+                Finding(
+                    "SK011",
+                    "error",
+                    path,
+                    _line_of(text, match.start()),
+                    f"{label} {_quote(match.group(0))}, keep machine facts in local files",
+                )
+            )
     return out
 
 

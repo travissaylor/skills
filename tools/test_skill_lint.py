@@ -213,6 +213,11 @@ class SeededDefectTest(unittest.TestCase):
         # /Users path, TODO, FIXME.
         self.check("sk009", "SK009", lines={8, 9, 10, 11})
 
+    def test_sk011_tailnet_addresses(self):
+        # Line 8 has a tailnet IP, line 9 a MagicDNS name, and line 13 an IP
+        # inside a fence. Line 10 holds lookalikes outside 100.64.0.0/10.
+        self.check("sk011", "SK011", lines={8, 9, 13})
+
     def test_sk101_unknown_frontmatter_key(self):
         self.check("sk101", "SK101", lines={4})
 

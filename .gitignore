@@ -1,2 +1,6 @@
 __pycache__/
 *.pyc
+
+# Machine facts for the fleet skill live in ~/.config/fleet/, never here.
+fleet/machines/
+fleet/*.local.md

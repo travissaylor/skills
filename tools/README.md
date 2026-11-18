@@ -23,7 +23,7 @@ Every target is a one line wrapper. The underlying command is `python3 tools/lin
 
 ## What it scans
 
-Skills are every immediate subdirectory of the repo root that holds a `SKILL.md`, skipping dotted directories and `tools`. Prose checks run over every markdown file in the repo, skipping dotted directories, `tools`, and `node_modules`. That is 14 files today: the root `README.md`, eleven `SKILL.md` files, and the two `session-audit` reference files.
+Skills are every immediate subdirectory of the repo root that holds a `SKILL.md`, skipping dotted directories and `tools`. Prose checks run over every markdown file in the repo, skipping dotted directories, `tools`, and `node_modules`. That is 16 files today: the root `README.md`, twelve `SKILL.md` files, the two `session-audit` reference files, and `fleet/machine-template.md`.
 
 Prose checks run on a masked view of each file. Fenced code blocks, blockquotes, inline code spans, and URLs are blanked out first, with line numbers and character offsets preserved. A semicolon inside a code sample is not a finding.
 
@@ -66,6 +66,7 @@ Codes are frozen. A new check gets a new code, and a retired check leaves its nu
 | SK008 | A backticked or bolded cross-skill name has no sibling skill directory. |
 | SK009 | A banned pattern: a foreign dotted directory such as `.william/`, a hardcoded `/Users/<name>/` path, or a leftover `TODO` or `FIXME`. |
 | SK010 | No skills were discovered under the root. This guards against a linter that silently checks nothing. |
+| SK011 | A Tailscale address from `100.64.0.0/10` or a `*.ts.net` MagicDNS name. Fenced code is scanned too, because a private address is just as public in a code block. Machine facts belong in local files, as the `fleet` skill does with `~/.config/fleet/`. |
 
 ### Structure warnings
 
@@ -103,7 +104,7 @@ Codes are frozen. A new check gets a new code, and a retired check leaves its nu
 
 ## The baseline
 
-The backlog is cleared. `make lint` reports 0 errors and 0 warnings across all 19 files, and `tools/lint_baseline.json` records zero findings, so the gate blocks the first new defect anywhere in the repo. After any future deliberate suppression-worthy state, the same mechanism applies: record it, then burn it down.
+The backlog is cleared. `make lint` reports 0 errors and 0 warnings across all 16 files, and `tools/lint_baseline.json` records zero findings, so the gate blocks the first new defect anywhere in the repo. After any future deliberate suppression-worthy state, the same mechanism applies: record it, then burn it down.
 
 The mechanism stays because it is what lets a linter land on a repo that already has a backlog. Without a baseline the pre-commit hook blocks every commit from the day it is installed. A hook that always fails gets deleted within a week, and then nothing is checked at all. The baseline records what is already broken so the gate only fires on what a commit adds.
 
@@ -173,7 +174,7 @@ The tradeoff is real. There is no YAML parser, so `core.parse_frontmatter` handl
 
     tools/lint_skills.py              entry point, fixes sys.path and calls cli.main
     tools/skill_lint/core.py          Finding, Skill, frontmatter parsing, masking, suppressions
-    tools/skill_lint/checks_structure.py  SK001 to SK010, SK101 to SK106
+    tools/skill_lint/checks_structure.py  SK001 to SK011, SK101 to SK106
     tools/skill_lint/checks_prose.py  SK201 to SK213
     tools/skill_lint/cli.py           flags, output formatting, baseline, exit codes
     tools/test_skill_lint.py          the test suite
