@@ -30,6 +30,16 @@ __all__ = [
 
 SKIP_DIRS = frozenset({"tools", "node_modules"})
 
+# Codes that no directive and no baseline can hide. A privacy finding that is
+# suppressed is still published, and a baselined one writes the leak into a
+# tracked file.
+UNSUPPRESSIBLE = frozenset({"SK011"})
+
+# Directories the whole-repo text scan never enters. The linter's own fixtures
+# hold planted defects on purpose.
+_TEXT_SKIP_DIRS = frozenset({".git", "node_modules", "__pycache__"})
+_TEXT_SKIP_PATHS = (("tools", "fixtures"),)
+
 
 # --- Findings -----------------------------------------------------------------
 
@@ -179,6 +189,36 @@ def discover_skills(root: Path) -> list[Skill]:
             )
         )
     return skills
+
+
+def repo_text_files(root: Path) -> list[tuple[Path, str]]:
+    """Every UTF-8 text file in the repo with its contents, dotted dirs and tools included.
+
+    Skips .git, node_modules, __pycache__, and tools/fixtures. A file that holds
+    a NUL byte or does not decode as UTF-8 is treated as binary and skipped.
+    """
+    root = Path(root).resolve()
+    found: list[tuple[Path, str]] = []
+    for dirpath, dirnames, filenames in os.walk(root):
+        rel_parts = Path(dirpath).relative_to(root).parts
+        dirnames[:] = [
+            d
+            for d in dirnames
+            if d not in _TEXT_SKIP_DIRS and (*rel_parts, d) not in _TEXT_SKIP_PATHS
+        ]
+        for name in filenames:
+            path = Path(dirpath) / name
+            try:
+                data = path.read_bytes()
+            except OSError:
+                continue
+            if b"\0" in data:
+                continue
+            try:
+                found.append((path, data.decode("utf-8")))
+            except UnicodeDecodeError:
+                continue
+    return sorted(found)
 
 
 def repo_markdown(root: Path) -> list[Path]:
@@ -376,7 +416,7 @@ def apply_suppressions(findings: list, text_by_path: dict) -> list:
     kept = []
     for finding in findings:
         text = text_by_path.get(finding.path)
-        if text is None:
+        if text is None or finding.code in UNSUPPRESSIBLE:
             kept.append(finding)
             continue
         if finding.path not in cache:

@@ -10,9 +10,10 @@ lint:
 lint-ci:
 	python3 tools/lint_skills.py --baseline tools/lint_baseline.json
 
-# Runs the linter and helper script test suites.
+# Runs the linter and helper script test suites, then the session-audit fixture test.
 test:
 	python3 -m unittest discover -s tools -p 'test_*.py'
+	python3 session-audit/scripts/test_mine_transcripts.py
 
 # Regenerates the baseline from current findings, run after a deliberate fix.
 baseline:

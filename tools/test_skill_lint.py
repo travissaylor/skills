@@ -213,6 +213,20 @@ class SeededDefectTest(unittest.TestCase):
         # /Users path, TODO, FIXME.
         self.check("sk009", "SK009", lines={8, 9, 10, 11})
 
+    def test_sk011_tailnet_addresses(self):
+        # SKILL.md: line 8 has an IP, line 9 a MagicDNS name, line 10 an IP that
+        # ends a sentence, line 11 an IPv6 address, line 17 an IP in a fence.
+        # Lines 12 to 14 hold lookalikes, ranges and shared addresses that must
+        # stay quiet. The workflow file proves non-markdown files are scanned.
+        findings = self.check("sk011", "SK011")
+        skill = "sk011-skill/SKILL.md"
+        workflow = ".github/workflows/deploy.yml"
+        self.assertEqual(lines_of(findings, "SK011", skill), {8, 9, 10, 11, 17})
+        self.assertEqual(lines_of(findings, "SK011", workflow), {7})
+        for f in findings:
+            self.assertNotIn("100.", f.message, "SK011 must not echo the address")
+            self.assertNotIn("example-tailnet", f.message, "SK011 must not echo the name")
+
     def test_sk101_unknown_frontmatter_key(self):
         self.check("sk101", "SK101", lines={4})
 
@@ -540,6 +554,36 @@ class BaselineTest(unittest.TestCase):
 
 
 # --- Baseline counting --------------------------------------------------------
+
+
+class UnsuppressibleTest(unittest.TestCase):
+    """SK011 ignores skip directives and never enters a baseline."""
+
+    def test_sk011_survives_directives_and_baseline(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        tree = Path(tmp.name) / "tree"
+        shutil.copytree(CASES / "sk011", tree)
+        skill_md = tree / "sk011-skill" / "SKILL.md"
+        text = skill_md.read_text(encoding="utf-8")
+        skill_md.write_text(
+            text.replace("# Fixture\n", "# Fixture\n<!-- lint-skip-file: all -->\n", 1),
+            encoding="utf-8",
+        )
+        baseline = Path(tmp.name) / "baseline.json"
+
+        written = cli(tree, "--write-baseline", baseline)
+        self.assertEqual(written.returncode, 1, "a baseline write must fail while SK011 fires")
+        data = json.loads(baseline.read_text(encoding="utf-8"))
+        self.assertFalse(
+            [k for k in data["counts"] if k.startswith("SK011")],
+            "the baseline must never record SK011",
+        )
+
+        gated = cli(tree, "--baseline", baseline, "--format", "json")
+        self.assertEqual(gated.returncode, 1)
+        codes = {f["code"] for f in parse_json_output(gated.stdout)}
+        self.assertEqual(codes, {"SK011"})
 
 
 class BaselineCountTest(unittest.TestCase):

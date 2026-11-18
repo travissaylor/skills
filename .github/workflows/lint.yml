@@ -37,7 +37,7 @@ jobs:
       - name: Compile check the tools directory
         run: python3 -m compileall -q tools/
 
-      - name: Run the linter and helper script test suites
+      - name: Run the linter, helper script and session-audit test suites
         run: make test
 
       - name: Run the skill linter against the baseline

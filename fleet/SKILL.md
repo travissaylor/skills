@@ -5,30 +5,38 @@ description: Reference for the user's machines (hp-elitebook on Windows 11, trav
 
 # Fleet
 
-The user runs T3 Code on several machines. Facts about each one live here so agents stop rediscovering them. Read the file for the machine you are on, and the file for any machine you delegate to.
+The user runs T3 Code on several machines. Facts about each one are written down so agents stop rediscovering them. This skill holds the rules and the file layout. The facts themselves live in local files outside the repo, because they include network addresses, environment ids and host setup that do not belong in a public repo.
 
-## Find the current machine
+## Find the machine files
 
-Run `hostname`. The name matches a row below and a file in `machines/`.
+The machine files are in `~/.config/fleet/`, one per host, named `<hostname>.md` in lowercase. Each host keeps a copy of every machine's file, so an agent can read about a machine it is about to delegate to.
 
-| Machine | Role | OS | T3 environment id | File |
-|---|---|---|---|---|
-| **hp-elitebook** | T3 host, daily laptop | Windows 11 Pro | `b93fd775-11bf-48cf-bc2f-151659e60d58` | [machines/hp-elitebook.md](machines/hp-elitebook.md) |
-| **travbox** | T3 host, always-on server | Ubuntu Server 24.04 | `d600146b-3da1-4488-b8ff-9bc5448a2c3f` | [machines/travbox.md](machines/travbox.md) |
-| **macbook-pro-m2** | T3 host, often offline | macOS | not recorded yet | [machines/macbook-pro-m2.md](machines/macbook-pro-m2.md) |
-| **iphone182** | T3 client only | iOS | none, it hosts nothing | none |
+1. Run `hostname`, lowercase the result, and drop everything from the first dot. Windows reports `HP-EliteBook`, which maps to `hp-elitebook.md`. macOS can report `MacBook-Pro-M2.local`, which maps to `macbook-pro-m2.md`. Do not use `hostname -s`, because Windows rejects it.
+2. Read `~/.config/fleet/<hostname>.md` for the machine you are on. If no file matches, list `~/.config/fleet/` and match by the machine names in the table below before deciding the machine is new.
+3. Before delegating, read the file for the target machine too.
 
-All four are on the same Tailscale tailnet. The T3 environment id of the machine you are on is in `~/.t3/userdata/environment-id`.
+| Machine | Role | OS | Local file |
+|---|---|---|---|
+| **hp-elitebook** | T3 host, daily laptop | Windows 11 Pro | `~/.config/fleet/hp-elitebook.md` |
+| **travbox** | T3 host, always-on server | Ubuntu Server 24.04 | `~/.config/fleet/travbox.md` |
+| **macbook-pro-m2** | T3 host, often offline | macOS | `~/.config/fleet/macbook-pro-m2.md` |
+| **iphone182** | T3 client only | iOS | none, it hosts nothing |
+
+The T3 environment id of the machine you are on is also in `~/.t3/userdata/environment-id`.
+
+**If a file is missing**, say so, then ask the user to copy it from another host. If the machine is new, create `~/.config/fleet/<hostname>.md` from the block in [machine-template.md](machine-template.md) and fill it in from the machine itself.
 
 ## Rules that hold on every machine
 
-- **Reach another machine through T3**, not SSH. hp-elitebook links travbox with auto access. Pass the environment id as `target.environmentId` to `delegate_task`, and pass a `target.projectId` from `t3_project_list` on that machine. SSH key auth between machines is not set up.
+- **Reach another machine through T3**, not SSH. Pass the target's environment id from its machine file as `target.environmentId` to `delegate_task`, and pass a `target.projectId` from `t3_project_list` on that machine. If the machine file has no id, `t3_environment_links` lists the linked machines with their ids.
 - **The skills repo** is `github.com/travissaylor/skills`, cloned to `~/projects/skills` on each host. `make install` links every skill into `~/.claude/skills`, `~/.codex/skills`, `~/.agents/skills` and `~/.gemini/skills`. Pull, then rerun `make install` after a new skill lands.
-- **This skill is linked from `~/projects/skills-main`**, a worktree of the skills repo that tracks the main branch, so it stays installed while `~/projects/skills` is on a feature branch. Refresh it with `git -C ~/projects/skills-main pull`.
-- **Global instruction files** `~/.claude/CLAUDE.md` and `~/.codex/AGENTS.md` on each host only name the machine and point here. Keep facts in this skill, not in those files.
-- **Install missing tools** instead of working around them. Then update the machine's file here and commit, so the next agent does not rediscover the gap.
+- **This skill is linked from `~/projects/skills-main`**, a worktree of the skills repo that tracks the main branch, so it stays installed while `~/projects/skills` is on a feature branch. Refresh it with `git -C ~/projects/skills-main pull`. `make install` links every skill to the checkout it runs from, this one included, so after running it from `~/projects/skills`, point the `fleet` links back at `~/projects/skills-main/fleet`.
+- **Global instruction files** `~/.claude/CLAUDE.md` and `~/.codex/AGENTS.md` on each host only name the machine and point here. Keep facts in the machine files, not in those files.
+- **Install missing tools** instead of working around them. Then update the machine's file, so the next agent does not rediscover the gap.
 - **Record facts that stay true**: hardware limits, install methods, where things live. Leave out transient state such as free disk space or running PIDs.
 
-## Update this reference
+## Update a machine file
 
-Edit the machine file, run `make check` from the repo root, commit on a branch, and open a PR. A machine that is offline keeps its last verified facts, with the check date in its header.
+Edit `~/.config/fleet/<hostname>.md` and update the date in its header. A machine that is offline keeps its last verified facts. Then copy the changed file to the other hosts, or commit and push if `~/.config/fleet` is a git repo, so every host reads the same facts.
+
+Never copy a machine file into this repo. The repo is public. Change [machine-template.md](machine-template.md) or this file only for structure that applies to every machine, then run `make check` from the repo root, commit on a branch, and open a PR.
